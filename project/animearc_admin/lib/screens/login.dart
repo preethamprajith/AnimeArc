@@ -122,7 +122,7 @@ class AdminLoginPage extends StatelessWidget {
                       onPressed: () {
                          Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => Dashboard()),
+                      MaterialPageRoute(builder: (context) => AdminHome()),
                     );
                         // Handle login logic
                       },
