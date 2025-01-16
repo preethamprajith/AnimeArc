@@ -11,6 +11,7 @@ class SideBar extends StatefulWidget {
 
 class _SideBarState extends State<SideBar> {
   final List<String> pages = [
+    "DASHBOARD",
     "MANAGE CATEGORY",
     "MANAGE ANIME",
     "MANAGE GENRE",
@@ -18,17 +19,18 @@ class _SideBarState extends State<SideBar> {
     "MANAGE STOCK",
     "MANAGE BOOKING",
     "VIEWS AND REVIEW COMPLAINT",
-    
+    "SETTINGS"
   ];
   final List<IconData> icons = [
-    Icons.category, 
-    Icons.animation_outlined, 
-    Icons.generating_tokens, 
+    Icons.house,
+    Icons.category,
+    Icons.animation_outlined,
+    Icons.generating_tokens,
     Icons.production_quantity_limits,
-    Icons.shopping_cart_checkout, 
-    Icons.book_online, 
+    Icons.shopping_cart_checkout,
+    Icons.book_online,
     Icons.view_agenda,
-    
+    Icons.settings,
   ];
 
   @override
@@ -43,8 +45,37 @@ class _SideBarState extends State<SideBar> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+/*             crossAxisAlignment: CrossAxisAlignment.stretch,
+ */
             children: [
+              SizedBox(
+                height: 20,
+              ),
+              Container(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Image.asset(
+                      "assets/logo3.png",
+                      width: 100,
+                      height: 100,
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'ANIME ARC',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color:
+                            Color.fromARGB(255, 0, 0, 0), // Orange text color
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(
+                height: 10,
+              ),
               ListView.builder(
                   shrinkWrap: true,
                   itemCount: pages.length,
@@ -67,10 +98,8 @@ class _SideBarState extends State<SideBar> {
               style: TextStyle(color: Colors.white),
             ),
             onTap: () {
-              Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => AdminLoginApp())
-              );
+              Navigator.pushReplacement(context,
+                  MaterialPageRoute(builder: (context) => AdminLoginApp()));
             },
           ),
         ],

@@ -21,14 +21,13 @@ class _AdminHomeState extends State<AdminHome> {
 
   final List<Widget> _pages = [
     const Center(child: Text('Dashboard Content')),
-      Managecategory(),
-      Manageanime(),
-      Managegenre(),
-      Manageproduct(),
-      Managestock(),
-      Managebooking(),
-      Viewscomplaints(),
-   
+    Managecategory(),
+    Manageanime(),
+    Managegenre(),
+    Manageproduct(),
+    Managestock(),
+    Managebooking(),
+    Viewscomplaints(),
     const Center(child: Text('Settings Content')),
   ];
 

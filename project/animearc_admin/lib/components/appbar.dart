@@ -11,10 +11,11 @@ class Appbar1 extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
-            Icon(
-              Icons.person,
-              color: Colors.amber,
-            ),
+            Image.asset(
+                      "assets/profile.png",
+                      width: 50,
+                      height: 50,
+                    ),
             SizedBox(
               width: 10,
             ),

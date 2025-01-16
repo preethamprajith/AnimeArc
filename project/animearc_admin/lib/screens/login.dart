@@ -42,16 +42,10 @@ class AdminLoginPage extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   // Logo
-                  const CircleAvatar(
-                    radius: 50,
-                    backgroundColor:
-                        Color(0xFF4D403F), // Dark brown background for the logo
-                    child: Icon(
-                      Icons.animation_outlined,
-                      color: Color(0xFFFFA500), // Orange logo color
-                      size: 40,
-                    ),
-                  ),
+                  Image.asset("assets/logo3.png",
+                  width:200,
+                  height:200,),
+                  
                   const SizedBox(height: 16),
 
                   // Title
@@ -120,10 +114,10 @@ class AdminLoginPage extends StatelessWidget {
                     height: 50,
                     child: ElevatedButton(
                       onPressed: () {
-                         Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => AdminHome()),
-                    );
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => AdminHome()),
+                        );
                         // Handle login logic
                       },
                       style: ElevatedButton.styleFrom(
