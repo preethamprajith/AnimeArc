@@ -23,7 +23,7 @@ class _ManagegenreState extends State<Managegenre>
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'Year Added',
+            'genre Added',
             style: TextStyle(color: Colors.white),
           ),
           backgroundColor: Colors.green,
@@ -32,7 +32,7 @@ class _ManagegenreState extends State<Managegenre>
       print("Inserted");
       genreController.clear();
     } catch (e) {
-      print("ERROR GENRE YEAR: $e");
+      print("ERROR GENRE : $e");
     }
   }
   @override
