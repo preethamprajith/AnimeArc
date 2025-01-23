@@ -1,5 +1,7 @@
+
 import 'package:animearc_admin/main.dart';
-import 'package:flutter/foundation.dart';
+
+
 import 'package:flutter/material.dart';
 
 class Managecategory extends StatefulWidget {
@@ -14,6 +16,7 @@ class _ManagecategoryState extends State<Managecategory>
      bool _isFormVisible = false; // To manage form visibility
   final Duration _animationDuration = const Duration(milliseconds: 300);
   final TextEditingController categoryController = TextEditingController();
+  List<Map<String, dynamic>> _category = [];
   Future<void> categorySubmit()  async {
     try {
       String category = categoryController.text;
@@ -35,6 +38,31 @@ class _ManagecategoryState extends State<Managecategory>
       print("ERROR category: $e");
     }
   }
+  
+Future<void> fetchdata ()
+async {
+  try{
+    final categorydata = await supabase.from("tbl_category").select();
+    setState(() {
+      _category = categorydata;
+
+    }); 
+  
+   
+      categoryController.clear();
+    } catch (e) {
+      
+
+    }
+}
+@override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    fetchdata();
+  }
+
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -111,11 +139,27 @@ class _ManagecategoryState extends State<Managecategory>
                   ))
                 : Container(),
           ),
-          Container(
-           
-            child: Center(
-              child: Text("category Data"),
-            ),
+          DataTable(
+            columns: [
+              DataColumn(label: Text("Sl.No")),
+              DataColumn(label: Text("category")),
+              DataColumn(label: Text("DElete")),
+            ],
+            rows: _category.asMap().entries.map((entry) {
+              print(entry.value);
+              return DataRow(cells: [
+                DataCell(Text((entry.key + 1).toString())), // Serial number
+                DataCell(Text(entry.value['category_name'])),
+                DataCell(
+                  IconButton(
+                    icon: const Icon(Icons.delete, color: Colors.red),
+                    onPressed: () {
+                      // _deleteAcademicYear(docId); // Delete academic year
+                    },
+                  ),
+                ),
+              ]);
+            }).toList(),
           )
         ],
       ),
