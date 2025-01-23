@@ -111,17 +111,17 @@ async {
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor:
-                                const Color.fromARGB(255, 201, 132, 13),
+                                const Color.fromARGB(255, 193, 187, 177),
                             padding: EdgeInsets.symmetric(
                                 horizontal: 90, vertical: 20),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(
                                   20), 
                               side: BorderSide(
-                                  color: Colors.orangeAccent,
+                                  color: const Color.fromARGB(255, 204, 197, 187),
                                   width: 2), 
                             ),
-                            shadowColor: Colors.orangeAccent, 
+                            shadowColor: const Color.fromARGB(255, 212, 206, 198), 
                             elevation: 10, 
                           ),
                           child: Text(
@@ -130,7 +130,7 @@ async {
                               fontSize: 18, 
                               fontWeight:
                                   FontWeight.bold, 
-                              color: const Color.fromARGB(240, 1, 1, 1),
+                              color: const Color.fromARGB(239, 255, 255, 255),
                             ),
                           ),
                         ),
@@ -148,13 +148,13 @@ async {
             rows: _category.asMap().entries.map((entry) {
               print(entry.value);
               return DataRow(cells: [
-                DataCell(Text((entry.key + 1).toString())), // Serial number
+                DataCell(Text((entry.key + 1).toString())), 
                 DataCell(Text(entry.value['category_name'])),
                 DataCell(
                   IconButton(
                     icon: const Icon(Icons.delete, color: Colors.red),
                     onPressed: () {
-                      // _deleteAcademicYear(docId); // Delete academic year
+                     
                     },
                   ),
                 ),

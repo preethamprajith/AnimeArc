@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "225021403849",
+    "project_id": "animearc-4b969",
+    "storage_bucket": "animearc-4b969.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:225021403849:android:e27b37d91230b2603a2318",
+        "android_client_info": {
+          "package_name": "com.example.user"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAexRanLiWMhxOcwQS1RnJ4rT7glx2bpwc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

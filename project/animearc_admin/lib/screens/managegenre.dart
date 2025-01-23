@@ -12,8 +12,10 @@ class _ManagegenreState extends State<Managegenre>
     with SingleTickerProviderStateMixin {
   
   bool _isFormVisible = false; // To manage form visibility
+  List<Map<String, dynamic>> genreList = [];
   final Duration _animationDuration = const Duration(milliseconds: 300);
   final TextEditingController genreController = TextEditingController();
+    
   Future<void> genreSubmit()  async {
     try {
       String genre = genreController.text;

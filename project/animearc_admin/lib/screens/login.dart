@@ -42,10 +42,12 @@ class AdminLoginPage extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   // Logo
-                  Image.asset("assets/logo3.png",
-                  width:200,
-                  height:200,),
-                  
+                  Image.asset(
+                    "assets/logo3.png",
+                    width: 200,
+                    height: 200,
+                  ),
+
                   const SizedBox(height: 16),
 
                   // Title
@@ -108,35 +110,45 @@ class AdminLoginPage extends StatelessWidget {
                   ),
                   const SizedBox(height: 24),
 
-                  // Login Button
-                  SizedBox(
-                    width: double.infinity,
-                    height: 50,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => AdminHome()),
-                        );
-                        // Handle login logic
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor:
-                            const Color(0xFFFFA500), // Orange button color
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                  
+
+// Login Button
+                  Card(
+                    elevation: 6,
+                    margin: const EdgeInsets.symmetric(horizontal: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: SizedBox(
+                      height: 50, // Same height as text fields
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => AdminHome()),
+                          );
+                          // Handle login logic
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor:
+                              const Color(0xFFFFA500), // Orange button color
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
-                      ),
-                      child: const Text(
-                        'LOGIN',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black, // Black text on orange button
+                        child: const Text(
+                          'LOGIN',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black, // Black text on orange button
+                          ),
                         ),
                       ),
                     ),
                   ),
+
                   const SizedBox(height: 10),
 
                   // Forgot Password
