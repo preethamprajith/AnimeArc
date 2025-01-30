@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:user/main.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({Key? key}) : super(key: key);
@@ -8,10 +9,53 @@ class RegisterPage extends StatefulWidget {
 }
 
 class _RegisterPageState extends State<RegisterPage> {
+  final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _useremailController = TextEditingController();
+  final TextEditingController _userpassController = TextEditingController();
+
+  Future<void> register() async {
+    try {
+      final auth = await supabase.auth.signUp(
+          password: _userpassController.text, email: _useremailController.text);
+      final uid = auth.user!.id;
+      if (uid.isEmpty || uid != "") {
+        insertuser(uid);
+      }
+    } catch (e) {
+      print("AUTH ERROR: $e");
+    }
+  }
+
+  Future<void> insertuser(final id) async {
+    try {
+      String name = _usernameController.text;
+      String email = _useremailController.text;
+      String password = _userpassController.text;
+
+      await supabase.from('tbl_user').insert({
+        'user_id': id,
+        'user_name': name,
+        'user_email': email,
+        'user_password': password,
+      });
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text(
+          "user Data Inserted Sucessfully",
+          style: TextStyle(color: Colors.white),
+        ),
+        backgroundColor: Colors.green,
+      ));
+      _usernameController.clear();
+      _useremailController.clear();
+      _userpassController.clear();
+    } catch (e) {
+      print("ERROR INSERTING DATA: $e");
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      
       backgroundColor: Colors.black,
       appBar: AppBar(
         backgroundColor: Colors.orange,
@@ -68,36 +112,65 @@ class _RegisterPageState extends State<RegisterPage> {
                 const SizedBox(height: 40),
 
                 // Username Field
-                _buildTextField(
-                  hintText: 'Enter your username',
-                  obscureText: false,
+                TextFormField(
+                  controller: _usernameController,
+                  style: const TextStyle(
+                      color: Colors.white), // Set input text color to white
+                  decoration: InputDecoration(
+                    labelText: 'USER NAME',
+                    labelStyle: const TextStyle(
+                        color: Colors.white), // Set label text color to white
+                    border: OutlineInputBorder(),
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(
+                          color: Colors.white), // Border color when not focused
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(
+                          color: Colors.orange), // Border color when focused
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 20),
 
-                // Email Field
-                _buildTextField(
-                  hintText: 'Enter your email',
-                  obscureText: false,
+                TextFormField(
+                  controller: _useremailController,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    labelText: 'EMAIL ID',
+                    labelStyle: const TextStyle(color: Colors.white),
+                    border: OutlineInputBorder(),
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.white),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.orange),
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 20),
 
-                // Password Field
-                _buildTextField(
-                  hintText: 'Create your password',
-                  obscureText: true,
+                TextField(
+                  controller: _userpassController,
+                  obscureText: true, // For password
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    labelText: 'PASSWORD',
+                    labelStyle: const TextStyle(color: Colors.white),
+                    border: OutlineInputBorder(),
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.white),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.orange),
+                    ),
+                  ),
                 ),
-                const SizedBox(height: 20),
-
-                // Confirm Password Field
-                _buildTextField(
-                  hintText: 'Confirm your password',
-                  obscureText: true,
-                ),
-                const SizedBox(height: 30),
 
                 // Register Button
                 ElevatedButton(
                   onPressed: () {
+                    register();
                     // Handle registration logic
                   },
                   style: ElevatedButton.styleFrom(
@@ -121,9 +194,9 @@ class _RegisterPageState extends State<RegisterPage> {
                 const SizedBox(height: 20),
 
                 // Back to Login Button
-                TextButton(
+                ElevatedButton(
                   onPressed: () {
-                    Navigator.pop(context);
+                    
                   },
                   child: const Text(
                     "Back to Login",
@@ -141,10 +214,11 @@ class _RegisterPageState extends State<RegisterPage> {
     );
   }
 
-  Widget _buildTextField({required String hintText, required bool obscureText}) {
+  Widget _buildTextField(
+      {required String hintText, required bool obscureText}) {
     return TextField(
       obscureText: obscureText,
-      style: const TextStyle(color: Colors.white),
+      style: const TextStyle(color: Color.fromARGB(255, 237, 237, 237)),
       decoration: InputDecoration(
         hintText: hintText,
         hintStyle: const TextStyle(color: Colors.grey),
@@ -154,7 +228,8 @@ class _RegisterPageState extends State<RegisterPage> {
           borderRadius: BorderRadius.circular(10),
           borderSide: BorderSide.none,
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
       ),
     );
   }

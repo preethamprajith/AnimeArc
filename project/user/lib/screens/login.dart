@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:user/register.dart';
+import 'package:user/main.dart';
+import 'package:user/screens/register.dart';
+import 'package:user/screens/userhome.dart';
 
 class InvictusLogin extends StatefulWidget {
   const InvictusLogin({super.key});
@@ -9,6 +11,22 @@ class InvictusLogin extends StatefulWidget {
 }
 
 class _InvictusLoginState extends State<InvictusLogin> {
+   final TextEditingController _orguseremailController = TextEditingController();
+  final TextEditingController _orguserpassController = TextEditingController();
+
+Future<void> login()
+async {
+  try {
+    await supabase.auth.signInWithPassword(password: _orguserpassController.text, email: _orguseremailController.text);
+    Navigator.pushReplacement(context, MaterialPageRoute(builder:(context) => Userhome(),));
+  } catch (e) {
+    print("Error occur in login:$e");
+  }
+}
+
+
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -37,6 +55,7 @@ class _InvictusLoginState extends State<InvictusLogin> {
 
                 // Email Field
                 _buildTextField(
+                  controller:_orguseremailController,
                   hintText: 'Enter your email',
                   obscureText: false,
                 ),
@@ -44,6 +63,7 @@ class _InvictusLoginState extends State<InvictusLogin> {
 
                 // Password Field
                 _buildTextField(
+                  controller: _orguserpassController,
                   hintText: 'Your password',
                   obscureText: true,
                 ),
@@ -53,7 +73,7 @@ class _InvictusLoginState extends State<InvictusLogin> {
                 _buildElevatedButton(
                   label: "LOGIN",
                   onPressed: () {
-                    // Handle login logic
+                   login();
                   },
                 ),
                 const SizedBox(height: 10),
@@ -74,10 +94,7 @@ class _InvictusLoginState extends State<InvictusLogin> {
                 _buildElevatedButton(
                   label: "Register now",
                   onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const RegisterPage()),
-                    );
+                   Navigator.push(context, MaterialPageRoute(builder: (context) => const RegisterPage()));
                   },
                 ),
                 const SizedBox(height: 20),
@@ -107,8 +124,9 @@ class _InvictusLoginState extends State<InvictusLogin> {
     );
   }
 
-  Widget _buildTextField({required String hintText, required bool obscureText}) {
-    return TextField(
+  Widget _buildTextField({required String hintText, required bool obscureText, required TextEditingController controller}) {
+    return TextFormField(
+      controller:  controller,
       obscureText: obscureText,
       style: const TextStyle(color: Colors.white),
       decoration: InputDecoration(
