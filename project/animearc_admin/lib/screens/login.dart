@@ -112,7 +112,7 @@ class AdminLoginPage extends StatelessWidget {
 
                   
 
-// Login Button
+
                   Card(
                     elevation: 6,
                     margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -120,7 +120,7 @@ class AdminLoginPage extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: SizedBox(
-                      height: 50, // Same height as text fields
+                      height: 50, 
                       child: ElevatedButton(
                         onPressed: () {
                           Navigator.push(
@@ -128,11 +128,11 @@ class AdminLoginPage extends StatelessWidget {
                             MaterialPageRoute(
                                 builder: (context) => AdminHome()),
                           );
-                          // Handle login logic
+                          
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor:
-                              const Color(0xFFFFA500), // Orange button color
+                              const Color(0xFFFFA500), 
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
@@ -142,7 +142,7 @@ class AdminLoginPage extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
-                            color: Colors.black, // Black text on orange button
+                            color: Colors.black, 
                           ),
                         ),
                       ),
