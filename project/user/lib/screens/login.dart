@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:user/main.dart';
+import 'package:user/screens/dashboard.dart';
 import 'package:user/screens/register.dart';
 import 'package:user/screens/userhome.dart';
 
@@ -18,7 +19,7 @@ Future<void> login()
 async {
   try {
     await supabase.auth.signInWithPassword(password: _orguserpassController.text, email: _orguseremailController.text);
-    Navigator.pushReplacement(context, MaterialPageRoute(builder:(context) => Userhome(),));
+    Navigator.pushReplacement(context, MaterialPageRoute(builder:(context) => dashboard(), ));
   } catch (e) {
     print("Error occur in login:$e");
   }
@@ -126,7 +127,7 @@ async {
 
   Widget _buildTextField({required String hintText, required bool obscureText, required TextEditingController controller}) {
     return TextFormField(
-      controller:  controller,
+      controller:  controller ,
       obscureText: obscureText,
       style: const TextStyle(color: Colors.white),
       decoration: InputDecoration(

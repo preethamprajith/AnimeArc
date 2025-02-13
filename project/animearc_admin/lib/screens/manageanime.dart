@@ -33,6 +33,7 @@ class _ManageanimeState extends State<Manageanime>
       );
       print("Inserted");
       animeController.clear();
+      fetchAnime();
     } catch (e) {
       print("error for adding anime: $e");
     }
