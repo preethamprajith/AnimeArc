@@ -16,7 +16,7 @@ class _dashboardState extends State<dashboard> {
   int _selectedIndex =0;
   final List<Widget> items =[
     Userhome(),
-    mylist(),
+    MyList(),
     Store(),
     Browse(),
     Account(),
