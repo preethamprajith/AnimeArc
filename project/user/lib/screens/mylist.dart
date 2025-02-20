@@ -26,7 +26,7 @@ class _MyListState extends State<MyList> with SingleTickerProviderStateMixin {
         actions: [
           IconButton(
             onPressed: () {},
-            icon: const Icon(Icons.cast, color: Colors.white),
+            icon: const Icon(Icons.notifications, color: Colors.white),
           ),
           IconButton(
             onPressed: () {},
@@ -64,7 +64,7 @@ class _MyListState extends State<MyList> with SingleTickerProviderStateMixin {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Image.asset('assets/images/tv_cat.png', width: 150), // Replace with actual asset path
+          Image.asset('./assets/tv_cat.png', width: 150), // Replace with actual asset path
           const SizedBox(height: 20),
           const Text(
             "Your Watchlist needs some love.",
