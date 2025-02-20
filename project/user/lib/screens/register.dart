@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:user/main.dart';
+import 'package:user/screens/login.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({Key? key}) : super(key: key);
@@ -196,7 +197,10 @@ class _RegisterPageState extends State<RegisterPage> {
                 // Back to Login Button
                 ElevatedButton(
                   onPressed: () {
-                    
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (context) => Login()),
+                    );
                   },
                   child: const Text(
                     "Back to Login",

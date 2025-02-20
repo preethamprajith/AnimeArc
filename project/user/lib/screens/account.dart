@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:user/screens/complaint.dart';
+import 'package:user/screens/login.dart';
+import 'package:user/screens/privacy.dart';
+import 'package:user/screens/profilesettings.dart';
 
 class Account extends StatefulWidget {
   const Account({super.key});
@@ -60,18 +64,20 @@ class _AccountState extends State<Account> {
             const SizedBox(height: 20),
 
             // Settings Options
-            _buildSettingItem(Icons.person_outline, "Profile Settings"),
-            _buildSettingItem(Icons.lock_outline, "Privacy & Security"),
-            _buildSettingItem(Icons.language, "Language"),
-            _buildSettingItem(Icons.help_outline, "Help & Support"),
-            _buildSettingItem(Icons.logout, "Log Out", isLogout: true),
+            _buildSettingItem(Icons.person_outline, " edit Profile ", Profilesettings()),
+            _buildSettingItem(Icons.lock_outline, "Privacy & Security",Security()),
+            
+            _buildSettingItem(Icons.help_outline, "complaint and feedback", Complaint()),
+            _buildSettingItem(Icons.logout, "Log Out", isLogout: true, Login()),
+            
+     
           ],
         ),
       ),
     );
   }
 
-  Widget _buildSettingItem(IconData icon, String title, {bool isLogout = false}) {
+  Widget _buildSettingItem(IconData icon, String title, Widget page, {bool isLogout = false}) {
     return Card(
       color: Colors.grey[900],
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -79,7 +85,10 @@ class _AccountState extends State<Account> {
         leading: Icon(icon, color: isLogout ? Colors.redAccent : Colors.white),
         title: Text(title, style: TextStyle(color: isLogout ? Colors.redAccent : Colors.white)),
         trailing: const Icon(Icons.arrow_forward_ios, color: Colors.white70, size: 16),
-        onTap: () {},
+        
+        onTap: () {
+           Navigator.push(context, MaterialPageRoute(builder: (context) => page,));
+        },
       ),
     );
   }

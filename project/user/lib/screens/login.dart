@@ -4,29 +4,33 @@ import 'package:user/screens/dashboard.dart';
 import 'package:user/screens/register.dart';
 import 'package:user/screens/userhome.dart';
 
-class InvictusLogin extends StatefulWidget {
-  const InvictusLogin({super.key});
+class Login extends StatefulWidget {
+  const Login({super.key});
 
   @override
-  State<InvictusLogin> createState() => _InvictusLoginState();
+  State<Login> createState() => _LoginState();
 }
 
-class _InvictusLoginState extends State<InvictusLogin> {
-   final TextEditingController _orguseremailController = TextEditingController();
+class _LoginState extends State<Login> {
+  final TextEditingController _orguseremailController = TextEditingController();
   final TextEditingController _orguserpassController = TextEditingController();
 
-Future<void> login()
-async {
-  try {
-    await supabase.auth.signInWithPassword(password: _orguserpassController.text, email: _orguseremailController.text);
-    Navigator.pushReplacement(context, MaterialPageRoute(builder:(context) => dashboard(), ));
-  } catch (e) {
-    print("Error occur in login:$e");
+  Future<void> login() async {
+    try {
+      await supabase.auth.signInWithPassword(
+          password: _orguserpassController.text,
+          email: _orguseremailController.text);
+      Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => dashboard(),
+          ));
+    } catch (e) {
+      print("Error occur in login:$e");
+    }
   }
-}
 
-
-
+  bool _obscurePassword = true;
 
   @override
   Widget build(BuildContext context) {
@@ -56,7 +60,7 @@ async {
 
                 // Email Field
                 _buildTextField(
-                  controller:_orguseremailController,
+                  controller: _orguseremailController,
                   hintText: 'Enter your email',
                   obscureText: false,
                 ),
@@ -64,17 +68,24 @@ async {
 
                 // Password Field
                 _buildTextField(
+                  pass: true,
                   controller: _orguserpassController,
-                  hintText: 'Your password',
-                  obscureText: true,
+                  hintText: 'Enter your password',
+                  obscureText: _obscurePassword,
+                  toggleObscure: () {
+                    setState(() {
+                      _obscurePassword = !_obscurePassword;
+                    });
+                  },
                 ),
+
                 const SizedBox(height: 20),
 
                 // Login Button
                 _buildElevatedButton(
                   label: "LOGIN",
                   onPressed: () {
-                   login();
+                    login();
                   },
                 ),
                 const SizedBox(height: 10),
@@ -95,13 +106,13 @@ async {
                 _buildElevatedButton(
                   label: "Register now",
                   onPressed: () {
-                   Navigator.push(context, MaterialPageRoute(builder: (context) => const RegisterPage()));
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => const RegisterPage()));
                   },
                 ),
                 const SizedBox(height: 20),
-
-               
-                
               ],
             ),
           ),
@@ -125,25 +136,46 @@ async {
     );
   }
 
-  Widget _buildTextField({required String hintText, required bool obscureText, required TextEditingController controller}) {
-    return TextFormField(
-      controller:  controller ,
-      obscureText: obscureText,
-      style: const TextStyle(color: Colors.white),
-      decoration: InputDecoration(
-        hintText: hintText,
-        hintStyle: const TextStyle(color: Colors.grey),
-        filled: true,
-        fillColor: Colors.grey[850],
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide.none,
-        ),
+  Widget _buildTextField({
+     bool pass=false,
+  required String hintText,
+  required bool obscureText,
+  required TextEditingController controller,
+  VoidCallback? toggleObscure,
+}) {
+  return TextFormField(
+    controller: controller,
+    obscureText: obscureText,
+    style: const TextStyle(color: Colors.white),
+    decoration: InputDecoration(
+      hintText: hintText,
+      hintStyle: const TextStyle(color: Colors.grey),
+      filled: true,
+      fillColor: Colors.grey[850],
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: BorderSide.none,
       ),
-    );
+      prefixIcon: hintText.toLowerCase().contains("password")
+          ? const Icon(Icons.lock, color: Colors.white)
+          : const Icon(Icons.email, color: Colors.white),
+      suffixIcon: pass
+          ? IconButton(
+              icon: Icon(
+                obscureText ? Icons.visibility_off : Icons.visibility,
+                color: Colors.white,
+              ),
+              onPressed: toggleObscure,
+            )
+          : null,
+    ),
+  );
+}
+
   }
 
-  Widget _buildElevatedButton({required String label, required VoidCallback onPressed}) {
+  Widget _buildElevatedButton(
+      {required String label, required VoidCallback onPressed}) {
     return ElevatedButton(
       onPressed: onPressed,
       style: ElevatedButton.styleFrom(
@@ -162,6 +194,3 @@ async {
     );
   }
 
-
- 
-}
