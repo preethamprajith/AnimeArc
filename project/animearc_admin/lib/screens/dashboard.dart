@@ -6,7 +6,10 @@ import 'package:animearc_admin/screens/managecategory.dart';
 import 'package:animearc_admin/screens/managegenre.dart';
 import 'package:animearc_admin/screens/manageproduct.dart';
 import 'package:animearc_admin/screens/managestock.dart';
+import 'package:animearc_admin/screens/viewproduct.dart';
 import 'package:animearc_admin/screens/views&complaints.dart';
+
+
 import 'package:flutter/material.dart';
 
 class AdminHome extends StatefulWidget {
@@ -24,7 +27,8 @@ class _AdminHomeState extends State<AdminHome> {
     Managecategory(),
     Manageanime(),
     Managegenre(),
-    Manageproduct(),
+    ManageProduct(),
+    ViewProduct(),
     Managestock(),
     Managebooking(),
     Viewscomplaints(),
@@ -50,7 +54,7 @@ class _AdminHomeState extends State<AdminHome> {
                 )),
             Expanded(
               flex: 5,
-              child: Column(
+              child: ListView(
                 children: [
                   Appbar1(),
                   _pages[_selectedIndex],
