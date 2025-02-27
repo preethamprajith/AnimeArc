@@ -1,3 +1,4 @@
+import 'package:animearc_admin/screens/product_details.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -58,75 +59,6 @@ class _ViewProductState extends State<ViewProduct> {
     }
   }
 
-  Future<void> _editProduct(Map<String, dynamic> product) async {
-    TextEditingController nameController =
-        TextEditingController(text: product['product_name']);
-    TextEditingController priceController =
-        TextEditingController(text: product['product_price'].toString());
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text("Edit Product"),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameController,
-                decoration: const InputDecoration(labelText: "Product Name"),
-              ),
-              TextField(
-                controller: priceController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: "Price"),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("Cancel"),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                try {
-                  await Supabase.instance.client
-                      .from('tbl_product')
-                      .update({
-                        'product_name': nameController.text,
-                        'product_price': double.tryParse(priceController.text) ??
-                            product['product_price'],
-                      })
-                      .eq('product_id', product['product_id']);
-
-                  Navigator.pop(context);
-                  _fetchProducts(); // Refresh after edit
-
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text("Product updated successfully!"),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
-                } catch (e) {
-                  print("Error updating product: $e");
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text("Error updating product: $e"),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
-              },
-              child: const Text("Save Changes"),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
  @override
 Widget build(BuildContext context) {
   return isLoading
@@ -151,82 +83,83 @@ Widget build(BuildContext context) {
                       itemBuilder: (context, index) {
                         final product = products[index];
 
-                        return Card(
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          elevation: 4,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              SizedBox(
-                                height: 150,
-                                width: double.infinity,
-                                child: ClipRRect(
-                                  borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                                  child: Image.network(
-                                    product['product_image'] ?? 'https://via.placeholder.com/150',
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (context, error, stackTrace) {
-                                      return const Center(child: Icon(Icons.broken_image, size: 50));
-                                    },
+                        return GestureDetector(
+                          onTap: () {
+                            Navigator.push(context, MaterialPageRoute(builder: (context) => ProductDetails(product: product),));
+                          },
+                          child: Card(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            elevation: 4,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                SizedBox(
+                                  height: 150,
+                                  width: double.infinity,
+                                  child: ClipRRect(
+                                    borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                                    child: Image.network(
+                                      product['product_image'] ?? 'https://via.placeholder.com/150',
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (context, error, stackTrace) {
+                                        return const Center(child: Icon(Icons.broken_image, size: 50));
+                                      },
+                                    ),
                                   ),
                                 ),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.all(8.0),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      product['product_name'] ?? "No Name",
-                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                                    ),
-                                    Text(
-                                      "\$${product['product_price'] ?? '0.00'}",
-                                      style: const TextStyle(color: Colors.green, fontSize: 14),
-                                    ),
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.end,
-                                      children: [
-                                        IconButton(
-                                          icon: const Icon(Icons.edit, color: Colors.blue),
-                                          onPressed: () => _editProduct(product),
-                                        ),
-                                        IconButton(
-                                          icon: const Icon(Icons.delete, color: Colors.red),
-                                          onPressed: () async {
-                                            bool? confirmDelete = await showDialog(
-                                              context: context,
-                                              builder: (context) {
-                                                return AlertDialog(
-                                                  title: const Text("Confirm Delete"),
-                                                  content: const Text("Are you sure you want to delete this product?"),
-                                                  actions: [
-                                                    TextButton(
-                                                      onPressed: () => Navigator.pop(context, false),
-                                                      child: const Text("No"),
-                                                    ),
-                                                    TextButton(
-                                                      onPressed: () => Navigator.pop(context, true),
-                                                      child: const Text("Yes"),
-                                                    ),
-                                                  ],
-                                                );
-                                              },
-                                            );
-
-                                            if (confirmDelete == true) {
-                                              _deleteProduct(product['product_id']);
-                                            }
-                                          },
-                                        ),
-                                      ],
-                                    ),
-                                  ],
+                                Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        product['product_name'] ?? "No Name",
+                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                      ),
+                                      Text(
+                                        "\$${product['product_price'] ?? '0.00'}",
+                                        style: const TextStyle(color: Colors.green, fontSize: 14),
+                                      ),
+                                      Row(
+                                        mainAxisAlignment: MainAxisAlignment.end,
+                                        children: [
+                                          IconButton(
+                                            icon: const Icon(Icons.delete, color: Colors.red),
+                                            onPressed: () async {
+                                              bool? confirmDelete = await showDialog(
+                                                context: context,
+                                                builder: (context) {
+                                                  return AlertDialog(
+                                                    title: const Text("Confirm Delete"),
+                                                    content: const Text("Are you sure you want to delete this product?"),
+                                                    actions: [
+                                                      TextButton(
+                                                        onPressed: () => Navigator.pop(context, false),
+                                                        child: const Text("No"),
+                                                      ),
+                                                      TextButton(
+                                                        onPressed: () => Navigator.pop(context, true),
+                                                        child: const Text("Yes"),
+                                                      ),
+                                                    ],
+                                                  );
+                                                },
+                                              );
+                          
+                                              if (confirmDelete == true) {
+                                                _deleteProduct(product['product_id']);
+                                              }
+                                            },
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         );
                       },
