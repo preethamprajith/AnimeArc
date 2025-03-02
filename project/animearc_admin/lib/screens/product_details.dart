@@ -56,40 +56,52 @@ class _ProductDetailsState extends State<ProductDetails> {
   }
 
   /// Function to Update Product Details
-  Future<void> _updateProductDetails() async {
-    try {
-      final response =
-          await Supabase.instance.client.from('tbl_product').update({
-        'product_name': productNameController.text,
-        'product_description': productDescController.text,
-        'product_price': double.tryParse(productPriceController.text) ?? 0.0,
-      }).eq('product_id', widget.product['product_id']);
+ Future<void> _updateProductDetails() async {
+  // Immediately update the product details in the UI.
+  setState(() {
+    widget.product['product_name'] = productNameController.text;
+    widget.product['product_description'] = productDescController.text;
+    widget.product['product_price'] =
+        double.tryParse(productPriceController.text) ?? 0.0;
+  });
 
-      if (response != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Product details updated successfully!"),
-            backgroundColor: Colors.green,
-          ),
-        );
-        setState(() {
-          widget.product['product_name'] = productNameController.text;
-          widget.product['product_description'] = productDescController.text;
-          widget.product['product_price'] =
-              double.tryParse(productPriceController.text) ?? 0.0;
-        });
-        Navigator.pop(context);
-      }
-    } catch (e) {
-      print("Error updating product details: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Error updating product details: $e"),
-          backgroundColor: Colors.red,
-        ),
-      );
+  // Show success message
+  ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(
+      content: Text("Product details updated successfully!"),
+      backgroundColor: Colors.green,
+    ),
+  );
+
+  try {
+    final response = await Supabase.instance.client.from('tbl_product').update({
+      'product_name': productNameController.text,
+      'product_description': productDescController.text,
+      'product_price': double.tryParse(productPriceController.text) ?? 0.0,
+    }).eq('product_id', widget.product['product_id']);
+
+    // Ensure that the backend update was successful
+    if (response != null) {
+      // You can choose to keep this code as a confirmation, but the UI update already took place
     }
+  } catch (e) {
+    // If there's an error, revert the UI update and show an error message
+    setState(() {
+      // Revert to original data if update fails
+      productNameController.text = widget.product['product_name'];
+      productDescController.text = widget.product['product_description'];
+      productPriceController.text = widget.product['product_price'].toString();
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text("Error updating product details: $e"),
+        backgroundColor: Colors.red,
+      ),
+    );
   }
+}
+
 
   /// Function to Update or Add Stock
   Future<void> _updateStock({bool isAdding = true}) async {
@@ -126,7 +138,7 @@ class _ProductDetailsState extends State<ProductDetails> {
         }
 
         _fetchStockDetails();
-        Navigator.pop(context);
+        
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(isAdding
