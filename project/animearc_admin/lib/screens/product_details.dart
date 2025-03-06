@@ -18,6 +18,8 @@ class _ProductDetailsState extends State<ProductDetails> {
   int stockQty = 0;
   String stockDate = 'N/A';
   int stockId = 0;
+  List<Map<String, dynamic>> stockHistory = [];
+  int totalStock = 0;
 
   @override
   void initState() {
@@ -25,8 +27,50 @@ class _ProductDetailsState extends State<ProductDetails> {
     productNameController.text = widget.product['product_name'];
     productDescController.text = widget.product['product_description'];
     productPriceController.text = widget.product['product_price'].toString();
-    _fetchStockDetails();
-    _updateProductDetails();
+    // _fetchStockDetails();
+    fetchStockHistory();
+  }
+
+  Future<void> fetchStockHistory() async {
+    final supabase = Supabase.instance.client;
+
+    // Fetch stock history
+    final response = await supabase
+        .from('tbl_stock')
+        .select('stock_qty, stock_date')
+        .eq('product_id', widget.product['product_id'])
+        .order('stock_date', ascending: false);
+
+    int calculatedTotalStock =
+        response.fold(0, (sum, stock) => sum + (stock['stock_qty'] as int));
+    print(response);
+    print(calculatedTotalStock);
+    setState(() {
+      stockHistory = response;
+      totalStock = calculatedTotalStock;
+    });
+  }
+
+  Future<void> addStock() async {
+    try {
+      int itemId = widget.product['product_id'];
+      int newStock = int.tryParse(stockController.text) ?? 0;
+      String stockDate = DateTime.now().toIso8601String();
+
+      final supabase = Supabase.instance.client;
+
+      // Insert new stock entry separately
+      await supabase.from('tbl_stock').insert({
+        'product_id': itemId,
+        'stock_qty': newStock,
+        'stock_date': stockDate,
+      });
+
+      // Refresh stock history & update total stock
+      fetchStockHistory();
+    } catch (e) {
+      print("Error adding stock: $e");
+    }
   }
 
   Future<void> _fetchStockDetails() async {
@@ -56,52 +100,53 @@ class _ProductDetailsState extends State<ProductDetails> {
   }
 
   /// Function to Update Product Details
- Future<void> _updateProductDetails() async {
-  // Immediately update the product details in the UI.
-  setState(() {
-    widget.product['product_name'] = productNameController.text;
-    widget.product['product_description'] = productDescController.text;
-    widget.product['product_price'] =
-        double.tryParse(productPriceController.text) ?? 0.0;
-  });
-
-  // Show success message
-  ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(
-      content: Text("Product details updated successfully!"),
-      backgroundColor: Colors.green,
-    ),
-  );
-
-  try {
-    final response = await Supabase.instance.client.from('tbl_product').update({
-      'product_name': productNameController.text,
-      'product_description': productDescController.text,
-      'product_price': double.tryParse(productPriceController.text) ?? 0.0,
-    }).eq('product_id', widget.product['product_id']);
-
-    // Ensure that the backend update was successful
-    if (response != null) {
-      // You can choose to keep this code as a confirmation, but the UI update already took place
-    }
-  } catch (e) {
-    // If there's an error, revert the UI update and show an error message
+  Future<void> _updateProductDetails() async {
+    // Immediately update the product details in the UI.
     setState(() {
-      // Revert to original data if update fails
-      productNameController.text = widget.product['product_name'];
-      productDescController.text = widget.product['product_description'];
-      productPriceController.text = widget.product['product_price'].toString();
+      widget.product['product_name'] = productNameController.text;
+      widget.product['product_description'] = productDescController.text;
+      widget.product['product_price'] =
+          double.tryParse(productPriceController.text) ?? 0.0;
     });
 
+    // Show success message
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text("Error updating product details: $e"),
-        backgroundColor: Colors.red,
+      const SnackBar(
+        content: Text("Product details updated successfully!"),
+        backgroundColor: Colors.green,
       ),
     );
-  }
-}
 
+    try {
+      final response =
+          await Supabase.instance.client.from('tbl_product').update({
+        'product_name': productNameController.text,
+        'product_description': productDescController.text,
+        'product_price': double.tryParse(productPriceController.text) ?? 0.0,
+      }).eq('product_id', widget.product['product_id']);
+
+      // Ensure that the backend update was successful
+      if (response != null) {
+        // You can choose to keep this code as a confirmation, but the UI update already took place
+      }
+    } catch (e) {
+      // If there's an error, revert the UI update and show an error message
+      setState(() {
+        // Revert to original data if update fails
+        productNameController.text = widget.product['product_name'];
+        productDescController.text = widget.product['product_description'];
+        productPriceController.text =
+            widget.product['product_price'].toString();
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Error updating product details: $e"),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
 
   /// Function to Update or Add Stock
   Future<void> _updateStock({bool isAdding = true}) async {
@@ -131,14 +176,15 @@ class _ProductDetailsState extends State<ProductDetails> {
               })
               .select('stock_id')
               .maybeSingle();
-
+          fetchStockHistory();
+          Navigator.pop(context);
           if (response != null) {
             stockId = response['stock_id'];
           }
         }
 
         _fetchStockDetails();
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(isAdding
@@ -159,7 +205,6 @@ class _ProductDetailsState extends State<ProductDetails> {
     }
   }
 
-  /// Function to Show Product Edit Dialog
   void _showProductEditDialog() {
     showDialog(
       context: context,
@@ -202,7 +247,6 @@ class _ProductDetailsState extends State<ProductDetails> {
     );
   }
 
-  /// Function to Show Stock Add Dialog
   void _showStockAddDialog() {
     showDialog(
       context: context,
@@ -230,7 +274,6 @@ class _ProductDetailsState extends State<ProductDetails> {
     );
   }
 
-  /// Function to Show Stock Reduce Dialog
   void _showStockReduceDialog() {
     showDialog(
       context: context,
@@ -363,14 +406,30 @@ class _ProductDetailsState extends State<ProductDetails> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    "Stock Quantity: $stockQty",
+                    "Stock Quantity: $totalStock",
                     style: const TextStyle(
                         fontSize: 20, fontWeight: FontWeight.bold),
                   ),
-                  const SizedBox(height: 5),
-                  Text(
-                    "Last Updated: $stockDate",
-                    style: const TextStyle(fontSize: 18, color: Colors.grey),
+                  
+                  const SizedBox(height: 10),
+                  const Text(
+                    "Stock History:",
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(
+                    height: 150,
+                    child: ListView.builder(
+                      itemCount: stockHistory.length,
+                      itemBuilder: (context, index) {
+                        final stock = stockHistory[index];
+                        return ListTile(
+                          leading:
+                              const Icon(Icons.history, color: Colors.blue),
+                          title: Text("Stock: ${stock['stock_qty']}"),
+                          subtitle: Text("Date: ${stock['stock_date']}"),
+                        );
+                      },
+                    ),
                   ),
                 ],
               ),
@@ -379,7 +438,8 @@ class _ProductDetailsState extends State<ProductDetails> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _showStockAddDialog, // Show dialog to add stock
+        onPressed: _showStockAddDialog,
+        tooltip: 'Add Stock',
         child: const Icon(Icons.add),
       ),
     );
