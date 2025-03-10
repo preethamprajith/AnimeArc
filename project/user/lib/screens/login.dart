@@ -85,9 +85,10 @@ class _LoginState extends State<Login> {
                 _buildElevatedButton(
                   label: "LOGIN",
                   onPressed: () {
-                    login();
+                  login();
                   },
                 ),
+
                 const SizedBox(height: 10),
 
                 // Forgot Password
@@ -137,60 +138,58 @@ class _LoginState extends State<Login> {
   }
 
   Widget _buildTextField({
-     bool pass=false,
-  required String hintText,
-  required bool obscureText,
-  required TextEditingController controller,
-  VoidCallback? toggleObscure,
-}) {
-  return TextFormField(
-    controller: controller,
-    obscureText: obscureText,
-    style: const TextStyle(color: Colors.white),
-    decoration: InputDecoration(
-      hintText: hintText,
-      hintStyle: const TextStyle(color: Colors.grey),
-      filled: true,
-      fillColor: Colors.grey[850],
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: BorderSide.none,
-      ),
-      prefixIcon: hintText.toLowerCase().contains("password")
-          ? const Icon(Icons.lock, color: Colors.white)
-          : const Icon(Icons.email, color: Colors.white),
-      suffixIcon: pass
-          ? IconButton(
-              icon: Icon(
-                obscureText ? Icons.visibility_off : Icons.visibility,
-                color: Colors.white,
-              ),
-              onPressed: toggleObscure,
-            )
-          : null,
-    ),
-  );
-}
-
-  }
-
-  Widget _buildElevatedButton(
-      {required String label, required VoidCallback onPressed}) {
-    return ElevatedButton(
-      onPressed: onPressed,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.orange,
-        shape: RoundedRectangleBorder(
+    bool pass = false,
+    required String hintText,
+    required bool obscureText,
+    required TextEditingController controller,
+    VoidCallback? toggleObscure,
+  }) {
+    return TextFormField(
+      controller: controller,
+      obscureText: obscureText,
+      style: const TextStyle(color: Colors.white),
+      decoration: InputDecoration(
+        hintText: hintText,
+        hintStyle: const TextStyle(color: Colors.grey),
+        filled: true,
+        fillColor: Colors.grey[850],
+        border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide.none,
         ),
-        minimumSize: const Size(double.infinity, 50),
-        shadowColor: Colors.orangeAccent,
-        elevation: 10,
-      ),
-      child: Text(
-        label,
-        style: const TextStyle(color: Colors.white, fontSize: 16),
+        prefixIcon: hintText.toLowerCase().contains("password")
+            ? const Icon(Icons.lock, color: Colors.white)
+            : const Icon(Icons.email, color: Colors.white),
+        suffixIcon: pass
+            ? IconButton(
+                icon: Icon(
+                  obscureText ? Icons.visibility_off : Icons.visibility,
+                  color: Colors.white,
+                ),
+                onPressed: toggleObscure,
+              )
+            : null,
       ),
     );
   }
+}
 
+Widget _buildElevatedButton(
+    {required String label, required VoidCallback onPressed}) {
+  return ElevatedButton(
+    onPressed: onPressed,
+    style: ElevatedButton.styleFrom(
+      backgroundColor: Colors.orange,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10),
+      ),
+      minimumSize: const Size(double.infinity, 50),
+      shadowColor: Colors.orangeAccent,
+      elevation: 10,
+    ),
+    child: Text(
+      label,
+      style: const TextStyle(color: Colors.white, fontSize: 16),
+    ),
+  );
+}

@@ -3,13 +3,17 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:user/screens/login.dart';
 
 Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized(); // Ensures Flutter engine is ready before async operations
+
   await Supabase.initialize(
     url: 'https://rrtzbtfyffafzqgiwrtv.supabase.co',
     anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJydHpidGZ5ZmZhZnpxZ2l3cnR2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQzNDY5MjgsImV4cCI6MjA0OTkyMjkyOH0.CIMMUagr7aI5vNRffV3T7klOuCBPfFKqd6O3FIW1uxE',
   );
-  runApp(const MainApp());
+
+  runApp(const MainApp()); // ✅ Now inside main()
 }
-final supabase = Supabase.instance.client;
+
+final supabase = Supabase.instance.client; // ✅ Defined after initialization
 
 class MainApp extends StatelessWidget {
   const MainApp({super.key});
@@ -17,10 +21,8 @@ class MainApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const MaterialApp(
-      debugShowCheckedModeBanner:false,
-      home:Login() ,
-
-      
+      debugShowCheckedModeBanner: false,
+      home: Login(),
     );
   }
 }
