@@ -116,7 +116,7 @@ class _CartState extends State<Cart> {
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Order placed successfully!')),
+        SnackBar(content: Text('PAYMENT AND ADDRESS DETAILS')),
       );
 
       fetchCartItems();
