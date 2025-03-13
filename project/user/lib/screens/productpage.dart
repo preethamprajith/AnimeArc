@@ -84,6 +84,9 @@ class _ProductPageState extends State<ProductPage> {
         .eq('booking_id', bookingId)
         .eq('product_id', id);
 
+
+        
+
     if (cartResponse.isEmpty) {
       await addCart(context, bookingId, id);
     } else {
@@ -98,21 +101,24 @@ class _ProductPageState extends State<ProductPage> {
 
 
 
- Future<void> addCart(BuildContext context, int bid, int cid) async {
+Future<void> addCart(BuildContext context, int bid, int cid) async {
   try {
     await supabase.from('tbl_cart').insert([
       {
         'booking_id': bid,
         'product_id': cid,
-        'cart_status': 0, // 🔹 Ensure cart_status is explicitly added
+        'cart_qty': '1',
+        'cart_status': 0, // Ensure it's explicitly set to 0
       }
     ]);
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text("Added to cart")));
+    ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Added to cart")));
   } catch (e) {
     print('Error adding to cart: $e');
   }
 }
+
+
 
 
 

@@ -18,15 +18,16 @@ class _CartState extends State<Cart> {
   @override
   void initState() {
     super.initState();
-    fetchCartItems(); // Only fetch cart items, don't confirm order
+    fetchCartItems();
   }
 
   Future<void> fetchCartItems() async {
     try {
+      final userId = supabase.auth.currentUser!.id;
       final booking = await supabase
           .from('tbl_booking')
           .select("booking_id")
-          .eq('user_id', supabase.auth.currentUser!.id)
+          .eq('user_id', userId)
           .eq('booking_status', '0')
           .maybeSingle();
 
@@ -42,7 +43,7 @@ class _CartState extends State<Cart> {
           .from('tbl_cart')
           .select('*')
           .eq('booking_id', bookingId)
-          .eq('cart_status', '0'); // Only fetch active cart items
+          .eq('cart_status', '1');
 
       List<Map<String, dynamic>> items = [];
 
@@ -69,7 +70,6 @@ class _CartState extends State<Cart> {
         isLoading = false;
       });
     } catch (e) {
-      print("Error fetching cart data: $e");
       setState(() => isLoading = false);
     }
   }
@@ -79,7 +79,6 @@ class _CartState extends State<Cart> {
       await supabase.from('tbl_cart').update({'cart_qty': newQty.toString()}).eq('cart_id', cartId);
       fetchCartItems();
     } catch (e) {
-      print("Error updating cart quantity: $e");
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to update quantity. Please try again.')),
       );
@@ -90,11 +89,7 @@ class _CartState extends State<Cart> {
     try {
       await supabase.from('tbl_cart').delete().eq('cart_id', cartId);
       fetchCartItems();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Product removed from cart.')),
-      );
     } catch (e) {
-      print("Error deleting item: $e");
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to delete product. Please try again.')),
       );
@@ -110,20 +105,26 @@ class _CartState extends State<Cart> {
     }
 
     try {
-      // Only update cart_status for this booking
-      await supabase
+      final response = await supabase
           .from('tbl_cart')
-          .update({'cart_status': '1'})
-          .eq('booking_id', bid!);
+          .update({'cart_status': 1})
+          .eq('booking_id', bid!)
+          .select();
 
-      fetchCartItems(); // Refresh cart after placing order
+      if (response.isEmpty) {
+        throw Exception("Failed to update order status.");
+      }
 
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Order placed successfully!')),
+      );
+
+      fetchCartItems();
       Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => Pay(bid: bid!)),
       );
     } catch (e) {
-      print("Error confirming order: $e");
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to place order. Please try again.')),
       );
@@ -200,32 +201,7 @@ class _CartState extends State<Cart> {
                         },
                       ),
                     ),
-                    Container(
-                      padding: EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4)],
-                      ),
-                      child: Column(
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text("Total:", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                              Text("\$${getTotalPrice().toStringAsFixed(2)}", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                            ],
-                          ),
-                          SizedBox(height: 8),
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton(
-                              onPressed: confirmOrder,
-                              child: Text("Place order", style: TextStyle(fontSize: 14)),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                    SizedBox(width: double.infinity, child: ElevatedButton(onPressed: confirmOrder, child: Text("Place order"))),
                   ],
                 ),
     );
