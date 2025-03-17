@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:user/screens/complaint.dart';
 import 'package:user/screens/login.dart';
 import 'package:user/screens/privacy.dart';
@@ -12,6 +13,58 @@ class Account extends StatefulWidget {
 }
 
 class _AccountState extends State<Account> {
+  final supabase = Supabase.instance.client;
+  String userName = "Loading...";
+  String userEmail = "Loading...";
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchUserDetails();
+  }
+
+  Future<void> fetchUserDetails() async {
+    try {
+      final userId = supabase.auth.currentUser?.id;
+      if (userId == null) {
+        setState(() {
+          userName = "Guest";
+          userEmail = "Not logged in";
+          isLoading = false;
+        });
+        return;
+      }
+
+      final response = await supabase
+          .from('tbl_user')
+          .select('user_name, user_email')
+          .eq('user_id', userId)
+          .maybeSingle();
+
+      if (response != null) {
+        setState(() {
+          userName = response['user_name'] ?? "No Name";
+          userEmail = response['user_email'] ?? "No Email";
+          isLoading = false;
+        });
+      } else {
+        setState(() {
+          userName = "User Not Found";
+          userEmail = "No Email";
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      print("Error fetching user details: $e");
+      setState(() {
+        userName = "Error";
+        userEmail = "Error fetching email";
+        isLoading = false;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -47,15 +100,15 @@ class _AccountState extends State<Account> {
                 const SizedBox(width: 16),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
+                  children: [
                     Text(
-                      "Username",
-                      style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                      userName,
+                      style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
                     ),
-                    SizedBox(height: 4),
+                    const SizedBox(height: 4),
                     Text(
-                      "Free Member",
-                      style: TextStyle(color: Colors.orangeAccent, fontSize: 14),
+                      userEmail,
+                      style: const TextStyle(color: Colors.orangeAccent, fontSize: 14),
                     ),
                   ],
                 ),
@@ -64,13 +117,10 @@ class _AccountState extends State<Account> {
             const SizedBox(height: 20),
 
             // Settings Options
-            _buildSettingItem(Icons.person_outline, " edit Profile ", Profilesettings()),
-            _buildSettingItem(Icons.lock_outline, "Privacy & Security",Security()),
-            
-            _buildSettingItem(Icons.help_outline, "complaint and feedback", Complaint()),
-            _buildSettingItem(Icons.logout, "Log Out", isLogout: true, Login()),
-            
-     
+            _buildSettingItem(Icons.person_outline, "Edit Profile", const Profilesettings()),
+            _buildSettingItem(Icons.lock_outline, "Privacy & Security", const Security()),
+            _buildSettingItem(Icons.help_outline, "Complaint & Feedback", const Complaint()),
+            _buildSettingItem(Icons.logout, "Log Out", const Login(), isLogout: true),
           ],
         ),
       ),
@@ -85,9 +135,8 @@ class _AccountState extends State<Account> {
         leading: Icon(icon, color: isLogout ? Colors.redAccent : Colors.white),
         title: Text(title, style: TextStyle(color: isLogout ? Colors.redAccent : Colors.white)),
         trailing: const Icon(Icons.arrow_forward_ios, color: Colors.white70, size: 16),
-        
         onTap: () {
-           Navigator.push(context, MaterialPageRoute(builder: (context) => page,));
+          Navigator.push(context, MaterialPageRoute(builder: (context) => page));
         },
       ),
     );

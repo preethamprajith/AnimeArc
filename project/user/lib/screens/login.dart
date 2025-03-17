@@ -23,7 +23,7 @@ class _LoginState extends State<Login> {
       Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) => dashboard(),
+            builder: (context) => Dashboard(),
           ));
     } catch (e) {
       print("Error occur in login:$e");

@@ -37,13 +37,15 @@ class _CartState extends State<Cart> {
       }
 
       int bookingId = booking['booking_id'];
+      print(bookingId);
       setState(() => bid = bookingId);
 
       final cartResponse = await supabase
           .from('tbl_cart')
-          .select('*')
+          .select()
           .eq('booking_id', bookingId)
-          .eq('cart_status', '1');
+          .eq('cart_status', '0');
+        print(cartResponse);
 
       List<Map<String, dynamic>> items = [];
 
@@ -111,6 +113,8 @@ class _CartState extends State<Cart> {
           .eq('booking_id', bid!)
           .select();
 
+      await supabase.from('tbl_booking').update({'booking_status': 1}).eq('booking_id', bid!);
+
       if (response.isEmpty) {
         throw Exception("Failed to update order status.");
       }
@@ -134,6 +138,41 @@ class _CartState extends State<Cart> {
   double getTotalPrice() {
     return cartItems.fold(0, (sum, item) => sum + (item['price'] * item['quantity']));
   }
+
+  // TextEditingController addressController = TextEditingController();
+
+  // void addAddress(){
+  //   showDialog(context: context, builder: (context) {
+  //     return AlertDialog(
+  //       content: Column(
+  //         mainAxisSize: MainAxisSize.min,
+  //         children: [
+  //           TextFormField(
+  //             controller: addressController,
+  //             decoration: InputDecoration(hintText: "Enter your address"),
+  //           ),
+  //           SizedBox(height: 16),
+            
+  //         ],
+  //       ),
+  //       actions: [
+  //         TextButton(
+  //           onPressed: () {
+  //             Navigator.pop(context);
+  //           },
+  //           child: Text("Cancel"),
+  //         ),
+  //         ElevatedButton(
+  //           onPressed: () {
+  //             confirmOrder();
+  //             Navigator.pop(context);
+  //           },
+  //           child: Text("Proceed to payment"),
+  //         ),
+  //       ],
+  //     );
+  //   },);
+  // }
 
   @override
   Widget build(BuildContext context) {

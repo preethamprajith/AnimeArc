@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class PaymentScreen extends StatefulWidget {
   final int bid; // Accept booking ID
-  const PaymentScreen({super.key, required this.bid});
+  final double total;
+  const PaymentScreen({super.key, required this.bid, required this.total});
 
   @override
   _PaymentScreenState createState() => _PaymentScreenState();
@@ -15,7 +17,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
   final TextEditingController cvvController = TextEditingController();
   final TextEditingController nameController = TextEditingController();
 
-  void _confirmOrder() {
+  final SupabaseClient supabase = Supabase.instance.client; // Supabase client
+
+  Future<void> _confirmOrder() async {
     if (cardNumberController.text.isEmpty ||
         monthController.text.isEmpty ||
         yearController.text.isEmpty ||
@@ -27,11 +31,34 @@ class _PaymentScreenState extends State<PaymentScreen> {
       return;
     }
 
-    // Navigate to Payment Success Screen
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const PaymentSuccessScreen()),
-    );
+    try {
+      // Update booking_status in tbl_booking
+      await supabase
+          .from('tbl_booking')
+          .update({'booking_status': '2', 'booking_amount': widget.total})
+          .match({'booking_id': widget.bid});
+
+      // Update cart_status in tbl_cart
+      await supabase
+          .from('tbl_cart')
+          .update({'cart_status': '2'})
+          .match({'booking_id': widget.bid});
+
+      // Show success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Payment successful! Order confirmed.")),
+      );
+
+      // Navigate to Payment Success Screen
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const PaymentSuccessScreen()),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error updating order: $e")),
+      );
+    }
   }
 
   @override

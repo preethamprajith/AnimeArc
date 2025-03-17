@@ -58,7 +58,7 @@ class _ProductPageState extends State<ProductPage> {
         .select()
         .eq('booking_status', 0)
         .eq('user_id', user.id)
-        .maybeSingle();
+        .maybeSingle().limit(1);
 
     int bookingId;
     if (booking == null) {

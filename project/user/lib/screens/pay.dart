@@ -14,14 +14,13 @@ class _PayState extends State<Pay> {
   final SupabaseClient supabase = Supabase.instance.client;
   Map<String, dynamic>? userData;
   double totalPayment = 0.0;
-  TextEditingController addressController = TextEditingController();
-  TextEditingController contactController = TextEditingController();
-
+  List<Map<String, dynamic>> cartProducts = [];
+  
   @override
   void initState() {
     super.initState();
     fetchUserData();
-    fetchTotalPayment();
+    fetchCartDetails();
   }
 
   Future<void> fetchUserData() async {
@@ -34,24 +33,23 @@ class _PayState extends State<Pay> {
           .single();
       setState(() {
         userData = response;
-        addressController.text = userData?['user_address'] ?? '';
-        contactController.text = userData?['user_contact'] ?? '';
       });
     }
   }
 
-  Future<void> fetchTotalPayment() async {
-    final response = await supabase
+  Future<void> fetchCartDetails() async {
+    final cartResponse = await supabase
         .from('tbl_cart')
         .select('cart_qty, product_id')
         .eq('booking_id', widget.bid);
 
     double total = 0.0;
+    List<Map<String, dynamic>> products = [];
 
-    for (var item in response) {
+    for (var item in cartResponse) {
       final productResponse = await supabase
           .from('tbl_product')
-          .select('product_price')
+          .select('product_name, product_image, product_price, product_description')
           .eq('product_id', item['product_id'])
           .single();
 
@@ -59,59 +57,29 @@ class _PayState extends State<Pay> {
         double price = double.tryParse(productResponse['product_price'].toString()) ?? 0.0;
         int quantity = int.tryParse(item['cart_qty'].toString()) ?? 1;
         total += price * quantity;
+
+        products.add({
+          'name': productResponse['product_name'],
+          'image': productResponse['product_image'],
+          'price': price,
+          'description': productResponse['product_description'],
+          'quantity': quantity,
+        });
       }
     }
 
     setState(() {
       totalPayment = total;
+      cartProducts = products;
     });
   }
 
-  void _editContactAndAddress() {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text("Edit Contact & Address"),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(controller: contactController, decoration: const InputDecoration(labelText: "Contact")),
-              TextField(controller: addressController, decoration: const InputDecoration(labelText: "New Address")),
-            ],
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
-            ElevatedButton(
-              onPressed: () async {
-                final user = supabase.auth.currentUser;
-                if (user != null) {
-                  await supabase.from('tbl_user').update({
-                    'user_address': addressController.text,
-                    'user_contact': contactController.text,
-                  }).eq('user_id', user.id);
-                  setState(() {
-                    userData?['user_address'] = addressController.text;
-                    userData?['user_contact'] = contactController.text;
-                  });
-                }
-                Navigator.pop(context);
-              },
-              child: const Text("Save"),
-            ),
-          ],
-        );
-      },
+  void _navigateToPaymentScreen() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => PaymentScreen(bid: widget.bid, total: totalPayment)),
     );
   }
-
- void _navigateToPaymentScreen() {
-  Navigator.push(
-    context,
-    MaterialPageRoute(builder: (context) => PaymentScreen(bid: widget.bid)),
-  );
-}
-
 
   @override
   Widget build(BuildContext context) {
@@ -130,14 +98,36 @@ class _PayState extends State<Pay> {
                   Text(userData?["user_address"] ?? "", style: TextStyle(fontSize: 16)),
                   Text("Contact: ${userData?["user_contact"] ?? ""}", style: TextStyle(fontSize: 16)),
                   const SizedBox(height: 10),
-                  ElevatedButton(
-                    onPressed: _editContactAndAddress,
-                    child: const Text("Edit Contact & Address"),
-                  ),
-                  const SizedBox(height: 20),
                   Divider(),
                   const SizedBox(height: 10),
-                  Text("Order Total: ₹${totalPayment.toStringAsFixed(2)}", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  Text("Your Order:", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                  const SizedBox(height: 10),
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: cartProducts.length,
+                      itemBuilder: (context, index) {
+                        var product = cartProducts[index];
+                        return Card(
+                          margin: EdgeInsets.symmetric(vertical: 8),
+                          child: ListTile(
+                            leading: Image.network(product['image'], width: 50, height: 50, fit: BoxFit.cover),
+                            title: Text(product['name'], style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text("${product['description']}", maxLines: 2, overflow: TextOverflow.ellipsis),
+                                Text("Quantity: ${product['quantity']}"),
+                              ],
+                            ),
+                            trailing: Text("\$${product['price'].toStringAsFixed(2)}"),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  Divider(),
+                  const SizedBox(height: 10),
+                  Text("Order Total: \$${totalPayment.toStringAsFixed(2)}", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 20),
                   Center(
                     child: ElevatedButton(

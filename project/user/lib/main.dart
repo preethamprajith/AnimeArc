@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:user/screens/dashboard.dart';
 import 'package:user/screens/login.dart';
 
 Future<void> main() async {
@@ -24,5 +25,19 @@ class MainApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       home: Login(),
     );
+  }
+}
+class AuthWrapper extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    // Check if the user is logged in
+    final session = supabase.auth.currentSession;
+
+    // Navigate to the appropriate screen based on the authentication state
+    if (session != null) {
+      return Dashboard(); // Replace with your home screen widget
+    } else {
+      return Login(); // Replace with your auth page widget
+    }
   }
 }

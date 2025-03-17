@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:user/main.dart';
 import 'package:user/screens/login.dart';
 
@@ -13,13 +14,17 @@ class _RegisterPageState extends State<RegisterPage> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _useremailController = TextEditingController();
   final TextEditingController _userpassController = TextEditingController();
+  final TextEditingController _useraddressController = TextEditingController();
+  final TextEditingController _usercontactController = TextEditingController();
 
   Future<void> register() async {
     try {
       final auth = await supabase.auth.signUp(
-          password: _userpassController.text, email: _useremailController.text);
-      final uid = auth.user!.id;
-      if (uid.isEmpty || uid != "") {
+        password: _userpassController.text,
+        email: _useremailController.text,
+      );
+      final uid = auth.user?.id;
+      if (uid != null && uid.isNotEmpty) {
         insertuser(uid);
       }
     } catch (e) {
@@ -32,23 +37,31 @@ class _RegisterPageState extends State<RegisterPage> {
       String name = _usernameController.text;
       String email = _useremailController.text;
       String password = _userpassController.text;
+      String address = _useraddressController.text;
+      String contact = _usercontactController.text;
 
       await supabase.from('tbl_user').insert({
         'user_id': id,
         'user_name': name,
         'user_email': email,
         'user_password': password,
+        'user_address': address,
+        'user_contact': contact,
       });
+
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
         content: Text(
-          "user Data Inserted Sucessfully",
+          "User Registered Successfully!",
           style: TextStyle(color: Colors.white),
         ),
         backgroundColor: Colors.green,
       ));
+
       _usernameController.clear();
       _useremailController.clear();
       _userpassController.clear();
+      _useraddressController.clear();
+      _usercontactController.clear();
     } catch (e) {
       print("ERROR INSERTING DATA: $e");
     }
@@ -77,7 +90,7 @@ class _RegisterPageState extends State<RegisterPage> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Logo with glow effect (consistent with login page)
+                // Logo with glow effect
                 Container(
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
@@ -85,7 +98,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   ),
                   padding: const EdgeInsets.all(20),
                   child: const Icon(
-                    Icons.animation_rounded, // Replace with your icon or logo
+                    Icons.animation_rounded,
                     size: 60,
                     color: Colors.orange,
                   ),
@@ -113,66 +126,29 @@ class _RegisterPageState extends State<RegisterPage> {
                 const SizedBox(height: 40),
 
                 // Username Field
-                TextFormField(
-                  controller: _usernameController,
-                  style: const TextStyle(
-                      color: Colors.white), // Set input text color to white
-                  decoration: InputDecoration(
-                    labelText: 'USER NAME',
-                    labelStyle: const TextStyle(
-                        color: Colors.white), // Set label text color to white
-                    border: OutlineInputBorder(),
-                    enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(
-                          color: Colors.white), // Border color when not focused
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(
-                          color: Colors.orange), // Border color when focused
-                    ),
-                  ),
-                ),
+                _buildTextField(controller: _usernameController, label: "User Name"),
                 const SizedBox(height: 20),
 
-                TextFormField(
-                  controller: _useremailController,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: InputDecoration(
-                    labelText: 'EMAIL ID',
-                    labelStyle: const TextStyle(color: Colors.white),
-                    border: OutlineInputBorder(),
-                    enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.white),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.orange),
-                    ),
-                  ),
-                ),
+                // Email Field
+                _buildTextField(controller: _useremailController, label: "Email ID"),
                 const SizedBox(height: 20),
 
-                TextField(
-                  controller: _userpassController,
-                  obscureText: true, // For password
-                  style: const TextStyle(color: Colors.white),
-                  decoration: InputDecoration(
-                    labelText: 'PASSWORD',
-                    labelStyle: const TextStyle(color: Colors.white),
-                    border: OutlineInputBorder(),
-                    enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.white),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.orange),
-                    ),
-                  ),
-                ),
+                // Password Field
+                _buildTextField(controller: _userpassController, label: "Password", obscureText: true),
+                const SizedBox(height: 20),
+
+                // Address Field
+                _buildTextField(controller: _useraddressController, label: "Address"),
+                const SizedBox(height: 20),
+
+                // Contact Field
+                _buildTextField(controller: _usercontactController, label: "Contact Number"),
+                const SizedBox(height: 20),
 
                 // Register Button
                 ElevatedButton(
                   onPressed: () {
                     register();
-                    // Handle registration logic
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.orange,
@@ -199,7 +175,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   onPressed: () {
                     Navigator.pushReplacement(
                       context,
-                      MaterialPageRoute(builder: (context) => Login()),
+                      MaterialPageRoute(builder: (context) => const Login()),
                     );
                   },
                   child: const Text(
@@ -218,22 +194,21 @@ class _RegisterPageState extends State<RegisterPage> {
     );
   }
 
-  Widget _buildTextField(
-      {required String hintText, required bool obscureText}) {
-    return TextField(
+  Widget _buildTextField({required TextEditingController controller, required String label, bool obscureText = false}) {
+    return TextFormField(
+      controller: controller,
       obscureText: obscureText,
-      style: const TextStyle(color: Color.fromARGB(255, 237, 237, 237)),
+      style: const TextStyle(color: Colors.white),
       decoration: InputDecoration(
-        hintText: hintText,
-        hintStyle: const TextStyle(color: Colors.grey),
-        filled: true,
-        fillColor: Colors.grey[850],
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide.none,
+        labelText: label,
+        labelStyle: const TextStyle(color: Colors.white),
+        border: const OutlineInputBorder(),
+        enabledBorder: const OutlineInputBorder(
+          borderSide: BorderSide(color: Colors.white),
         ),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+        focusedBorder: const OutlineInputBorder(
+          borderSide: BorderSide(color: Colors.orange),
+        ),
       ),
     );
   }
