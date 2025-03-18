@@ -1,3 +1,4 @@
+import 'package:animearc_admin/screens/order_details.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -14,7 +15,7 @@ class _ManagebookingState extends State<Managebooking> {
   Future<List<Map<String, dynamic>>> fetchBookings() async {
     final response = await supabase
         .from('tbl_booking')
-        .select('*, tbl_cart(cart_qty, product_id, cart_status), tbl_user(user_address)')
+        .select('booking_id, booking_data, booking_status, tbl_cart(cart_qty, product_id, cart_status), tbl_user(user_address)')
         .eq('booking_status', 2) // Filter bookings with status 2
         .order('booking_id', ascending: false);
 
@@ -77,28 +78,44 @@ class _ManagebookingState extends State<Managebooking> {
           itemCount: bookings.length,
           itemBuilder: (context, index) {
             var booking = bookings[index];
+            int? bookingId = booking['booking_id'];
 
             return Card(
               margin: const EdgeInsets.all(10),
               child: ListTile(
-                title: Text("Booking ID: ${booking['booking_id']}"),
+                title: Text("Booking ID: ${bookingId ?? 'N/A'}"),
                 subtitle: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text("Date: ${booking['booking_data']}"),
-                    Text("Status: ${booking['booking_status']}"),
-                    Text("Total Amount: \$${booking['total_amount'].toStringAsFixed(2)}"),
-                    Text("User Address: ${booking['tbl_user'] != null ? booking['tbl_user']['user_address'] : 'N/A'}"),
+                    Text("Date: ${booking['booking_data'] ?? 'Unknown'}"),
+                    Text("Status: ${booking['booking_status'] ?? 'Unknown'}"),
+                    Text("Total Amount: \$${booking['total_amount']?.toStringAsFixed(2) ?? '0.00'}"),
+                    Text("User Address: ${booking['tbl_user']?['user_address'] ?? 'N/A'}"),
                     const SizedBox(height: 10),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: (booking['tbl_cart'] as List<dynamic>).map((cart) {
-                        return Text("Product ID: ${cart['product_id']}, Qty: ${cart['cart_qty']}");
-                      }).toList(),
+                      children: (booking['tbl_cart'] as List<dynamic>?)?.map((cart) {
+                            return Text("Product ID: ${cart['product_id']}, Qty: ${cart['cart_qty']}");
+                          }).toList() ??
+                          [],
                     ),
                   ],
                 ),
-                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                trailing: ElevatedButton(
+                  onPressed: bookingId != null
+                      ? () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => OrderDetailsPage(
+                                bid: bookingId,
+                              ),
+                            ),
+                          );
+                        }
+                      : null,
+                  child: const Text("View Details"),
+                ),
               ),
             );
           },
