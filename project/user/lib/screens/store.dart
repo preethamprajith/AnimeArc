@@ -60,7 +60,7 @@ class _StoreState extends State<Store> {
       body: RefreshIndicator(
         onRefresh: fetchProducts,
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(10.0),
           child: isLoading
               ? const Center(child: CircularProgressIndicator())
               : GridView.builder(
@@ -68,7 +68,7 @@ class _StoreState extends State<Store> {
                     crossAxisCount: 2,
                     crossAxisSpacing: 8,
                     mainAxisSpacing: 8,
-                    childAspectRatio: 0.9,
+                    childAspectRatio: 0.7,
                   ),
                   itemCount: merchandise.length,
                   itemBuilder: (context, index) {

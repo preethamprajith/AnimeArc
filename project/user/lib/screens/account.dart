@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:user/screens/complaint.dart';
 import 'package:user/screens/login.dart';
+import 'package:user/screens/my_order.dart';
 import 'package:user/screens/privacy.dart';
 import 'package:user/screens/profilesettings.dart';
 
@@ -120,6 +121,7 @@ class _AccountState extends State<Account> {
             _buildSettingItem(Icons.person_outline, "Edit Profile", const Profilesettings()),
             _buildSettingItem(Icons.lock_outline, "Privacy & Security", const Security()),
             _buildSettingItem(Icons.help_outline, "Complaint & Feedback", const Complaint()),
+            _buildSettingItem(Icons.help_outline, "BOOKINGS ", const Orderspage()),
             _buildSettingItem(Icons.logout, "Log Out", const Login(), isLogout: true),
           ],
         ),

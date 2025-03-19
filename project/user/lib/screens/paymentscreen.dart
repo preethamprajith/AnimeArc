@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_credit_card/flutter_credit_card.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:user/screens/success.dart';
+
 
 class PaymentScreen extends StatefulWidget {
-  final int bid; // Accept booking ID
+  final int bid;
   final double total;
   const PaymentScreen({super.key, required this.bid, required this.total});
 
@@ -11,48 +14,36 @@ class PaymentScreen extends StatefulWidget {
 }
 
 class _PaymentScreenState extends State<PaymentScreen> {
-  final TextEditingController cardNumberController = TextEditingController();
-  final TextEditingController monthController = TextEditingController();
-  final TextEditingController yearController = TextEditingController();
-  final TextEditingController cvvController = TextEditingController();
-  final TextEditingController nameController = TextEditingController();
+  String cardNumber = '';
+  String expiryDate = '';
+  String cardHolderName = '';
+  String cvvCode = '';
+  bool isCvvFocused = false;
+  final GlobalKey<FormState> formKey = GlobalKey<FormState>();
 
-  final SupabaseClient supabase = Supabase.instance.client; // Supabase client
+  final SupabaseClient supabase = Supabase.instance.client;
 
   Future<void> _confirmOrder() async {
-    if (cardNumberController.text.isEmpty ||
-        monthController.text.isEmpty ||
-        yearController.text.isEmpty ||
-        cvvController.text.isEmpty ||
-        nameController.text.isEmpty) {
+    if (!formKey.currentState!.validate()) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please fill in all fields")),
+        const SnackBar(content: Text("Please fill in all fields correctly!")),
       );
       return;
     }
 
     try {
-      // Update booking_status in tbl_booking
       await supabase
           .from('tbl_booking')
           .update({'booking_status': '2', 'booking_amount': widget.total})
           .match({'booking_id': widget.bid});
-
-      // Update cart_status in tbl_cart
       await supabase
           .from('tbl_cart')
           .update({'cart_status': '2'})
           .match({'booking_id': widget.bid});
 
-      // Show success message
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Payment successful! Order confirmed.")),
-      );
-
-      // Navigate to Payment Success Screen
-      Navigator.push(
+      Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const PaymentSuccessScreen()),
+        MaterialPageRoute(builder: (context) => PaymentSuccessPage()),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -64,145 +55,64 @@ class _PaymentScreenState extends State<PaymentScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Payment")),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              "Credit & Debit Cards",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.teal),
-            ),
-            const SizedBox(height: 10),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.grey[100],
-                borderRadius: BorderRadius.circular(12),
+      appBar: AppBar(title: const Text("Payment"), backgroundColor: Colors.deepPurple),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Colors.deepPurple, Colors.purpleAccent],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              CreditCardWidget(
+                cardNumber: cardNumber,
+                expiryDate: expiryDate,
+                cardHolderName: cardHolderName,
+                cvvCode: cvvCode,
+                showBackView: isCvvFocused,
+                onCreditCardWidgetChange: (creditCardBrand) {},
+                isHolderNameVisible: true,
+                enableFloatingCard: true,
               ),
-              child: Column(
-                children: [
-                  TextField(
-                    controller: cardNumberController,
-                    keyboardType: TextInputType.number,
-                    decoration: InputDecoration(
-                      labelText: "Card number",
-                      hintText: "XXXX XXXX XXXX XXXX",
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
                     children: [
-                      Expanded(
-                        child: TextField(
-                          controller: monthController,
-                          keyboardType: TextInputType.number,
-                          decoration: InputDecoration(
-                            labelText: "Month",
-                            hintText: "00",
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                          ),
-                        ),
+                      CreditCardForm(
+                        cardNumber: cardNumber,
+                        expiryDate: expiryDate,
+                        cardHolderName: cardHolderName,
+                        cvvCode: cvvCode,
+                        isHolderNameVisible: true,
+                        onCreditCardModelChange: (creditCardModel) {
+                          setState(() {
+                            cardNumber = creditCardModel.cardNumber;
+                            expiryDate = creditCardModel.expiryDate;
+                            cardHolderName = creditCardModel.cardHolderName;
+                            cvvCode = creditCardModel.cvvCode;
+                            isCvvFocused = creditCardModel.isCvvFocused;
+                          });
+                        },
+                        formKey: formKey,
                       ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: TextField(
-                          controller: yearController,
-                          keyboardType: TextInputType.number,
-                          decoration: InputDecoration(
-                            labelText: "Year",
-                            hintText: "00",
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                          ),
+                      const SizedBox(height: 20),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.deepPurple,
+                          padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
                         ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: TextField(
-                          controller: cvvController,
-                          keyboardType: TextInputType.number,
-                          decoration: InputDecoration(
-                            labelText: "CVV",
-                            hintText: "XXX",
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                          ),
-                        ),
+                        onPressed: _confirmOrder,
+                        child: const Text("Pay Now", style: TextStyle(fontSize: 18)),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 10),
-                  TextField(
-                    controller: nameController,
-                    decoration: InputDecoration(
-                      labelText: "Name on card",
-                      hintText: "Your Name",
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: Icon(Icons.credit_card, size: 40, color: Colors.grey),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-            Center(
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.teal,
-                  padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
                 ),
-                onPressed: _confirmOrder,
-                child: const Text("CONFIRM ORDER", style: TextStyle(fontSize: 16, color: Colors.white)),
               ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class PaymentSuccessScreen extends StatelessWidget {
-  const PaymentSuccessScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.blue,
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.check_circle, size: 100, color: Colors.white),
-            const SizedBox(height: 20),
-            const Text(
-              "Payment Successful!",
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
-            ),
-            const SizedBox(height: 10),
-            const Text(
-              "Thank you! Your order has been placed successfully.",
-              style: TextStyle(fontSize: 16, color: Colors.white70),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 30),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: Colors.blue,
-                padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
-              ),
-              onPressed: () {
-                Navigator.popUntil(context, (route) => route.isFirst);
-              },
-              child: const Text("Go to Home"),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
