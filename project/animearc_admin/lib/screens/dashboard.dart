@@ -1,3 +1,4 @@
+import 'package:animearc_admin/screens/manageanimefile.dart';
 import 'package:flutter/material.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:animearc_admin/components/appbar.dart';
@@ -58,8 +59,9 @@ class _AdminHomeState extends State<AdminHome> {
     ViewProduct(),
     Managestock(),
     Managebooking(),
-    Viewscomplaints(),
-    const Center(child: Text('Settings Content')),
+    UploadAnimeVideo(),
+    ComplaintPage(),
+    
   ];
 
   void onSidebarItemTapped(int index) {

@@ -6,11 +6,15 @@ import 'package:user/screens/login.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized(); // Ensures Flutter engine is ready before async operations
 
+  
+try {
   await Supabase.initialize(
     url: 'https://rrtzbtfyffafzqgiwrtv.supabase.co',
     anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJydHpidGZ5ZmZhZnpxZ2l3cnR2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQzNDY5MjgsImV4cCI6MjA0OTkyMjkyOH0.CIMMUagr7aI5vNRffV3T7klOuCBPfFKqd6O3FIW1uxE',
   );
-
+} catch (e) {
+  print("Login Failed: $e");
+}
   runApp(const MainApp()); // ✅ Now inside main()
 }
 

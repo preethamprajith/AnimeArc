@@ -21,8 +21,9 @@ class _SideBarState extends State<SideBar> {
     "VIEW PRODUCT",
     "MANAGE STOCK",
     "MANAGE BOOKING",
+    "MANAGE ANIMEFILE",
     "VIEWS AND REVIEW COMPLAINT",
-    "SETTINGS"
+    
   ];
 
   final List<IconData> icons = [
@@ -34,8 +35,8 @@ class _SideBarState extends State<SideBar> {
     Icons.visibility,
     Icons.store,
     Icons.book_online,
+    Icons.file_copy,
     Icons.feedback,
-    Icons.settings,
   ];
 
   @override
