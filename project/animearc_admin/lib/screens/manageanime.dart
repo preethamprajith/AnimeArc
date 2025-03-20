@@ -1,199 +1,192 @@
 import 'package:animearc_admin/main.dart';
 import 'package:flutter/material.dart';
 
-class Manageanime extends StatefulWidget {
-  const Manageanime({super.key});
+class ManageAnime extends StatefulWidget {
+  const ManageAnime({super.key});
 
   @override
-  State<Manageanime> createState() => _ManageanimeState();
+  State<ManageAnime> createState() => _ManageAnimeState();
 }
 
-class _ManageanimeState extends State<Manageanime>
-    with SingleTickerProviderStateMixin {
-  final _formkey = GlobalKey<FormState>();
+class _ManageAnimeState extends State<ManageAnime> {
   bool _isFormVisible = false;
-  List<Map<String, dynamic>> genreList = [];
   List<Map<String, dynamic>> animeList = [];
-  final Duration _animationDuration = const Duration(milliseconds: 300);
+  List<Map<String, dynamic>> genreList = [];
   final TextEditingController animeController = TextEditingController();
-  Future<void> manageanime() async {
-    try {
-      String anime = animeController.text;
-      await supabase
-          .from("tbl_anime")
-          .insert({'anime_name': anime, 'genre_id': _selectedGenre});
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'anime added',
-            style: TextStyle(color: Colors.white),
-          ),
-          backgroundColor: Colors.green,
-        ),
-      );
-      print("Inserted");
-      animeController.clear();
-      fetchAnime();
-    } catch (e) {
-      print("error for adding anime: $e");
-    }
+  String? _selectedGenre;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchGenres();
+    fetchAnime();
   }
 
-  Future<void> fetchgenre() async {
+  Future<void> fetchGenres() async {
     try {
       final response = await supabase.from('tbl_genre').select();
-      print(response);
-      if (response.isNotEmpty) {
-        setState(() {
-          genreList = response;
-        });
-      }
+      setState(() => genreList = response);
     } catch (e) {
-      print("Error fetching genre: $e");
+      print("Error fetching genres: $e");
     }
   }
 
   Future<void> fetchAnime() async {
     try {
-      final response =
-          await supabase.from("tbl_anime").select('*,tbl_genre(*)');
-      print("response: $response");
-      if (response.isNotEmpty) {
-        setState(() {
-          animeList = response;
-        });
-      }
+      final response = await supabase.from('tbl_anime').select('*,tbl_genre(*)');
+      setState(() => animeList = response);
     } catch (e) {
-      print("ERROR FETCHING ANIME DATA: $e");
+      print("Error fetching anime: $e");
     }
   }
 
-  void display() {
-    print(animeList);
+  Future<void> addAnime() async {
+    if (animeController.text.trim().isEmpty || _selectedGenre == null) return;
+    try {
+      await supabase.from('tbl_anime').insert({
+        'anime_name': animeController.text,
+        'genre_id': _selectedGenre,
+      });
+      animeController.clear();
+      fetchAnime();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Anime added successfully!", style: TextStyle(color: Colors.white)),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      print("Error adding anime: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Error adding anime: $e", style: TextStyle(color: Colors.white)),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
-  @override
-  void initState() {
-    super.initState();
-    fetchAnime();
-    fetchgenre();
+  Future<void> deleteAnime(int animeId) async {
+    try {
+      await supabase.from('tbl_anime').delete().eq('anime_id', animeId);
+      fetchAnime();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Anime deleted successfully!", style: TextStyle(color: Colors.white)),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      print("Error deleting anime: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Error deleting anime: $e", style: TextStyle(color: Colors.white)),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
-
-  String _selectedGenre = "";
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(18.0),
+      padding: const EdgeInsets.all(24.0), // Increased padding
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text("Manage anime"),
+              const Text("Manage Anime", style: TextStyle(fontSize: 28, fontWeight: FontWeight.w700, color: Colors.indigo)), // Larger, bolder title
               ElevatedButton.icon(
-                onPressed: () {
-                  setState(() {
-                    _isFormVisible = !_isFormVisible; // Toggle form visibility
-                  });
-                },
-                label: Text(_isFormVisible ? "Cancel" : "Add anime"),
-                icon: Icon(_isFormVisible ? Icons.cancel : Icons.add),
-              )
+                onPressed: () => setState(() => _isFormVisible = !_isFormVisible),
+                icon: Icon(_isFormVisible ? Icons.cancel : Icons.add, color: Colors.white), // White icons
+                label: Text(_isFormVisible ? "Cancel" : "Add Anime", style: const TextStyle(color: Colors.white)), // White text
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _isFormVisible ? Colors.redAccent : Colors.indigo,
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+              ),
             ],
           ),
-          AnimatedSize(
-            duration: _animationDuration,
-            curve: Curves.easeInOut,
+          const SizedBox(height: 20),
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 300),
             child: _isFormVisible
-                ? Form(
-                    key: _formkey,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          "anime Form",
-                          style: TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.bold),
-                        ),
-                        SizedBox(height: 20),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Padding(
-                                padding: const EdgeInsets.only(),
-                                child: DropdownButtonFormField<String>(
-                                  value: _selectedGenre.isNotEmpty
-                                      ? _selectedGenre
-                                      : null,
-                                  onChanged: (newValue) {
-                                    setState(() {
-                                      _selectedGenre = newValue!;
-                                    });
-                                  },
-                                  items: genreList.map((genre) {
-                                    print("Genre: $genre");
-                                    return DropdownMenuItem<String>(
-                                      value: (genre['genre_id']).toString(),
-                                      child: Text(genre['genre_name'] ?? ""),
-                                    );
-                                  }).toList(),
-                                ),
-                              ),
+                ? Card(
+                    elevation: 8, // Increased elevation for a more pronounced effect
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    child: Padding(
+                      padding: const EdgeInsets.all(20.0), // Increased padding inside card
+                      child: Column(
+                        children: [
+                          DropdownButtonFormField<String>(
+                            value: _selectedGenre,
+                            onChanged: (value) => setState(() => _selectedGenre = value),
+                            items: genreList.map((genre) {
+                              return DropdownMenuItem(
+                                value: genre['genre_id'].toString(),
+                                child: Text(genre['genre_name']),
+                              );
+                            }).toList(),
+                            decoration: InputDecoration(
+                              labelText: "Select Genre",
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                              filled: true,
+                              fillColor: Colors.grey[100], // Slightly filled background for input fields
                             ),
-                            SizedBox(
-                              width: 10,
+                          ),
+                          const SizedBox(height: 16),
+                          TextField(
+                            controller: animeController,
+                            decoration: InputDecoration(
+                              labelText: "Anime Name",
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                              filled: true,
+                              fillColor: Colors.grey[100],
                             ),
-                            Expanded(
-                              child: TextFormField(
-                                controller: animeController,
-                                decoration: const InputDecoration(
-                                  labelText: "anime  Name",
-                                  border: OutlineInputBorder(),
-                                ),
-                              ),
+                          ),
+                          const SizedBox(height: 20),
+                          ElevatedButton(
+                            onPressed: addAnime,
+                            child: const Text("Add Anime", style: TextStyle(color: Colors.white)),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.green,
+                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                             ),
-                            const SizedBox(width: 10),
-                            ElevatedButton(
-                              onPressed: () {
-                                manageanime();
-                              },
-                              child: const Text("Add"),
-                            ),
-                          ],
-                        ),
-                      ],
+                          ),
+                        ],
+                      ),
                     ),
                   )
-                : Container(),
+                : const SizedBox.shrink(),
           ),
-          DataTable(
-            columns: [
-              DataColumn(label: Text("Sl.No")),
-              
-              DataColumn(label: Text("genre")),
-              DataColumn(label: Text("anime")),
-              DataColumn(label: Text("DElete")),
-            ],
-            rows: animeList.asMap().entries.map((entry) {
-              // print(entry.value);
-              return DataRow(cells: [
-                DataCell(Text((entry.key + 1).toString())),
-               
-                DataCell(Text(
-                    entry.value['tbl_genre']['genre_name'])), // serial number
-                DataCell(Text(entry.value['anime_name'])),
-                DataCell(
-                  IconButton(
-                    icon: const Icon(Icons.delete, color: Colors.red),
-                    onPressed: () {
-                      // _deleteAcademicYear(docId); // Delete academic year
+          const SizedBox(height: 24),
+          Expanded(
+            child: animeList.isEmpty
+                ? const Center(child: Text("No Anime Available", style: TextStyle(fontSize: 20, fontStyle: FontStyle.italic, color: Colors.grey)))
+                : ListView.builder(
+                    itemCount: animeList.length,
+                    itemBuilder: (context, index) {
+                      final anime = animeList[index];
+                      return Card(
+                        elevation: 4,
+                        margin: const EdgeInsets.symmetric(vertical: 8), // Added margin for spacing
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        child: ListTile(
+                          title: Text(anime['anime_name'], style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
+                          subtitle: Text("Genre: ${anime['tbl_genre']['genre_name']}", style: const TextStyle(fontSize: 16, color: Colors.grey)),
+                          trailing: IconButton(
+                            icon: const Icon(Icons.delete, color: Colors.red),
+                            onPressed: () => deleteAnime(anime['anime_id']),
+                          ),
+                        ),
+                      );
                     },
                   ),
-                ),
-              ]);
-            }).toList(),
-          )
+          ),
         ],
       ),
     );

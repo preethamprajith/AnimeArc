@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 
 class SideBar extends StatefulWidget {
   final Function(int) onItemSelected;
-  const SideBar({super.key, required this.onItemSelected});
+  final int selectedIndex;
+
+  const SideBar({super.key, required this.onItemSelected, required this.selectedIndex});
 
   @override
   State<SideBar> createState() => _SideBarState();
@@ -22,87 +24,124 @@ class _SideBarState extends State<SideBar> {
     "VIEWS AND REVIEW COMPLAINT",
     "SETTINGS"
   ];
+
   final List<IconData> icons = [
-    Icons.house,
+    Icons.dashboard,
     Icons.category,
-    Icons.animation_outlined,
-    Icons.generating_tokens,
+    Icons.movie,
+    Icons.style,
     Icons.production_quantity_limits,
-    Icons.shopping_cart_checkout,
-    Icons.production_quantity_limits,
+    Icons.visibility,
+    Icons.store,
     Icons.book_online,
-    Icons.view_agenda,
+    Icons.feedback,
     Icons.settings,
   ];
 
   @override
   Widget build(BuildContext context) {
     return Container(
+      width: 250, // Sidebar width
       decoration: BoxDecoration(
-          gradient: LinearGradient(colors: [
-        const Color.fromARGB(255, 226, 116, 7),
-        const Color.fromARGB(255, 43, 43, 43)
-      ], begin: Alignment.topCenter, end: Alignment.bottomCenter)),
+        gradient: LinearGradient(
+          colors: [
+            const Color.fromARGB(255, 226, 116, 7),
+            const Color.fromARGB(255, 43, 43, 43)
+          ],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ),
+      ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Column(
-/*             crossAxisAlignment: CrossAxisAlignment.stretch,
- */
             children: [
-              SizedBox(
-                height: 20,
-              ),
-              Container(
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Image.asset(
-                      "assets/logo3.png",
-                      width: 100,
-                      height: 100,
+              const SizedBox(height: 20),
+              
+              // Logo and Title
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Image.asset(
+                    "assets/logo3.png",
+                    width: 60,
+                    height: 60,
+                  ),
+                  const SizedBox(width: 10),
+                  const Text(
+                    'ANIME ARC',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
                     ),
-                    const SizedBox(height: 16),
-                    const Text(
-                      'ANIME ARC',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color:
-                            Color.fromARGB(255, 0, 0, 0), // Orange text color
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+
+              // Sidebar Menu Items
+              ListView.builder(
+                shrinkWrap: true,
+                itemCount: pages.length,
+                itemBuilder: (context, index) {
+                  bool isSelected = widget.selectedIndex == index;
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 8),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      decoration: BoxDecoration(
+                        color: isSelected ? Colors.white.withOpacity(0.2) : Colors.transparent,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: ListTile(
+                        onTap: () {
+                          widget.onItemSelected(index);
+                        },
+                        leading: Icon(
+                          icons[index],
+                          color: isSelected ? Colors.orangeAccent : Colors.white,
+                        ),
+                        title: Text(
+                          pages[index],
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: isSelected ? Colors.orangeAccent : Colors.white,
+                          ),
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                       ),
                     ),
-                  ],
-                ),
+                  );
+                },
               ),
-              SizedBox(
-                height: 10,
-              ),
-              ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: pages.length,
-                  itemBuilder: (context, index) {
-                    return ListTile(
-                      onTap: () {
-                        widget.onItemSelected(index);
-                      },
-                      leading: Icon(icons[index], color: Colors.white),
-                      title: Text(pages[index],
-                          style: TextStyle(color: Colors.white)),
-                    );
-                  }),
             ],
           ),
-          ListTile(
-            leading: Icon(Icons.logout_outlined, color: Colors.white),
-            title: Text(
-              "Logout",
-              style: TextStyle(color: Colors.white),
+
+          // Logout Button
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: ListTile(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              tileColor: Colors.redAccent.withOpacity(0.2),
+              leading: const Icon(Icons.logout_outlined, color: Colors.white),
+              title: const Text(
+                "Logout",
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              ),
+              onTap: () {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => AdminLoginApp()),
+                );
+              },
             ),
-            onTap: () {
-              Navigator.pushReplacement(context,
-                  MaterialPageRoute(builder: (context) => AdminLoginApp()));
-            },
           ),
         ],
       ),
