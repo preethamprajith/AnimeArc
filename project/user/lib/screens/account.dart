@@ -70,10 +70,13 @@ class _AccountState extends State<Account> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black87,
+      backgroundColor: Colors.black,
       appBar: AppBar(
         backgroundColor: Colors.black,
-        title: const Text("Account", style: TextStyle(color: Colors.white)),
+        title: const Text(
+          "Account",
+          style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+        ),
         centerTitle: true,
         actions: [
           IconButton(
@@ -86,43 +89,62 @@ class _AccountState extends State<Account> {
           ),
         ],
       ),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Profile Section
-            Row(
-              children: [
-                const CircleAvatar(
-                  radius: 40,
-                  backgroundColor: Colors.grey,
-                  child: Icon(Icons.person, color: Colors.white, size: 40),
-                ),
-                const SizedBox(width: 16),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      userName,
-                      style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      userEmail,
-                      style: const TextStyle(color: Colors.orangeAccent, fontSize: 14),
-                    ),
-                  ],
-                ),
-              ],
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.grey[900],
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.orange.withOpacity(0.3),
+                    blurRadius: 10,
+                    spreadRadius: 2,
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 45,
+                    backgroundColor: Colors.orange.withOpacity(0.7),
+                    child: const Icon(Icons.person, color: Colors.white, size: 50),
+                  ),
+                  const SizedBox(width: 16),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        userName,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        userEmail,
+                        style: const TextStyle(color: Colors.orangeAccent, fontSize: 14),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
+
             const SizedBox(height: 20),
 
             // Settings Options
             _buildSettingItem(Icons.person_outline, "Edit Profile", const Profilesettings()),
             _buildSettingItem(Icons.lock_outline, "Privacy & Security", const Security()),
-            _buildSettingItem(Icons.help_outline, "Complaint & Feedback", const Complaint()),
-            _buildSettingItem(Icons.help_outline, "BOOKINGS ", const OrdersPage()),
+            _buildSettingItem(Icons.feedback_outlined, "Complaint & Feedback", const Complaint()),
+            _buildSettingItem(Icons.book_online, "My Orders", const OrdersPage()),
             _buildSettingItem(Icons.logout, "Log Out", const Login(), isLogout: true),
           ],
         ),
@@ -131,16 +153,41 @@ class _AccountState extends State<Account> {
   }
 
   Widget _buildSettingItem(IconData icon, String title, Widget page, {bool isLogout = false}) {
-    return Card(
-      color: Colors.grey[900],
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      child: ListTile(
-        leading: Icon(icon, color: isLogout ? Colors.redAccent : Colors.white),
-        title: Text(title, style: TextStyle(color: isLogout ? Colors.redAccent : Colors.white)),
-        trailing: const Icon(Icons.arrow_forward_ios, color: Colors.white70, size: 16),
-        onTap: () {
-          Navigator.push(context, MaterialPageRoute(builder: (context) => page));
-        },
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(context, MaterialPageRoute(builder: (context) => page));
+      },
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 8),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.grey[900],
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.orange.withOpacity(0.2),
+              blurRadius: 6,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: isLogout ? Colors.redAccent : Colors.white, size: 24),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Text(
+                title,
+                style: TextStyle(
+                  color: isLogout ? Colors.redAccent : Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            const Icon(Icons.arrow_forward_ios, color: Colors.white70, size: 18),
+          ],
+        ),
       ),
     );
   }

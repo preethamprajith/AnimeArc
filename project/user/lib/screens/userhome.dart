@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class Userhome extends StatefulWidget {
   const Userhome({super.key});
@@ -8,104 +9,119 @@ class Userhome extends StatefulWidget {
 }
 
 class _UserhomeState extends State<Userhome> {
+  List<Map<String, dynamic>> genres = [];
+  Map<String, List<Map<String, dynamic>>> animeByGenre = {};
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchGenresWithAnime();
+  }
+
+  Future<void> fetchGenresWithAnime() async {
+    try {
+      final genreResponse = await Supabase.instance.client.from('tbl_genre').select('*');
+      final animeResponse = await Supabase.instance.client.from('tbl_anime').select('*, tbl_genre(genre_name)');
+
+      setState(() {
+        genres = List<Map<String, dynamic>>.from(genreResponse);
+        animeByGenre = {};
+
+        for (var anime in animeResponse) {
+          String genreName = anime['tbl_genre']['genre_name'] ?? "Unknown";
+          if (!animeByGenre.containsKey(genreName)) {
+            animeByGenre[genreName] = [];
+          }
+          animeByGenre[genreName]!.add(anime);
+        }
+
+        isLoading = false;
+      });
+    } catch (e) {
+      print("Error fetching data: $e");
+      setState(() => isLoading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.black,
       appBar: AppBar(
         backgroundColor: Colors.black,
-        title: Text('Animearc', style: TextStyle(color: Colors.white)),
+        title: const Text('Animearc', style: TextStyle(color: Colors.orange, fontSize: 24, fontWeight: FontWeight.bold)),
         centerTitle: true,
         actions: [
-          IconButton(
-            icon: Icon(Icons.notifications, color: Colors.white),
-            onPressed: () {},
-          ),
-          IconButton(
-            icon: Icon(Icons.search, color: Colors.white),
-            onPressed: () {},
-          ),
+          IconButton(icon: const Icon(Icons.notifications, color: Colors.orange), onPressed: () {}),
+          IconButton(icon: const Icon(Icons.search, color: Colors.orange), onPressed: () {}),
         ],
       ),
-      body: Container(
-        color: Colors.black87,
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                buildSection("Top Airing"),
-                buildHorizontalList(5),
-                SizedBox(height: 20),
-                buildSection("New Episode Releases"),
-                buildHorizontalList(5),
-                SizedBox(height: 20),
-                buildSection("Most Favorite"),
-                buildHorizontalList(5),
-                SizedBox(height: 20),
-                buildSection("Top TV Series"),
-                buildHorizontalList(5),
-              ],
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator(color: Colors.orange))
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(12.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: animeByGenre.entries.map((entry) {
+                  return _buildGenreSection(entry.key, entry.value);
+                }).toList(),
+              ),
             ),
-          ),
-        ),
-      ),
-     
     );
   }
 
-  Widget buildSection(String title) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  Widget _buildGenreSection(String genreName, List<Map<String, dynamic>> animeList) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title, style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
-        TextButton(
-          onPressed: () {},
-          child: Text("See all", style: TextStyle(color: Colors.red)),
+        const SizedBox(height: 16),
+        Text(genreName, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 8),
+        SizedBox(
+          height: 180,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: animeList.length,
+            itemBuilder: (context, index) {
+              return _buildAnimeCard(animeList[index]);
+            },
+          ),
         ),
       ],
     );
   }
 
-  Widget buildHorizontalList(int count) {
-    return SizedBox(
-      height: 200,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        itemCount: count,
-        itemBuilder: (context, index) {
-          return Container(
-            width: 150,
-            margin: EdgeInsets.only(right: 10),
-            decoration: BoxDecoration(
-              color: Colors.black,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [BoxShadow(color: Colors.white12, blurRadius: 4)],
+  Widget _buildAnimeCard(Map<String, dynamic> anime) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 8.0),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Stack(
+          children: [
+            Image.network(
+              anime['anime_poster'] ?? "https://via.placeholder.com/150",
+              width: 130,
+              height: 180,
+              fit: BoxFit.cover,
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Container(
-                    color: Colors.grey, // Placeholder for image
-                    width: double.infinity,
-                    child: Center(child: Icon(Icons.tv, color: Colors.white, size: 50)),
-                  ),
+            Positioned(
+              bottom: 5,
+              left: 5,
+              right: 5,
+              child: Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(color: Colors.black.withOpacity(0.7), borderRadius: BorderRadius.circular(6)),
+                child: Text(
+                  anime['anime_name'],
+                  style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                Padding(
-                  padding: EdgeInsets.all(8.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Anime #${index + 1}', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                      Text('Action, Fantasy, Comedy', style: TextStyle(color: Colors.white70, fontSize: 12)),
-                    ],
-                  ),
-                ),
-              ],
+              ),
             ),
-          );
-        },
+          ],
+        ),
       ),
     );
   }

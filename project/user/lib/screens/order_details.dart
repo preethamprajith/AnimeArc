@@ -80,96 +80,95 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Order #${widget.orderId}")),
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        title: Text("Order #${widget.orderId}", style: TextStyle(color: Colors.white)),
+        backgroundColor: Colors.orange,
+        centerTitle: true,
+        elevation: 4,
+      ),
       body: isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator(color: Colors.orange))
           : errorMessage.isNotEmpty
-              ? Center(child: Text(errorMessage, style: TextStyle(color: Colors.red)))
+              ? Center(child: Text(errorMessage, style: TextStyle(color: Colors.red, fontSize: 16)))
               : orderDetails == null
-                  ? const Center(child: Text("Order not found"))
+                  ? const Center(child: Text("Order not found", style: TextStyle(color: Colors.white)))
                   : buildOrderDetails(),
     );
   }
 
   Widget buildOrderDetails() {
     return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Text("Order Items", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          ),
-          ListView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: orderItems.length,
-            itemBuilder: (context, index) {
-              final item = orderItems[index];
-              return Card(
-                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: ListTile(
-                  leading: item['image'].isNotEmpty
-                      ? Image.network(item['image'], width: 50, height: 50, fit: BoxFit.cover)
-                      : const Icon(Icons.image_not_supported, size: 50, color: Colors.grey),
-                  title: Text(item['product'], style: TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text("Qty: ${item['quantity']} - ₹${item['price'].toStringAsFixed(2)}"),
-                      Text("Total: ₹${item['total'].toStringAsFixed(2)}", style: TextStyle(fontWeight: FontWeight.bold)),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                        decoration: BoxDecoration(
-                          color: getOrderStatusColor(item['status']).withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Text(
-                          getOrderStatusText(item['status']),
-                          style: TextStyle(color: getOrderStatusColor(item['status']), fontWeight: FontWeight.bold, fontSize: 12),
-                        ),
-                      ),
-                    ],
+          Card(
+            color: Colors.grey[900],
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text("Order Items", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
+                  const SizedBox(height: 10),
+                  ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: orderItems.length,
+                    itemBuilder: (context, index) {
+                      final item = orderItems[index];
+                      return buildOrderItemCard(item);
+                    },
                   ),
-                ),
-              );
-            },
+                  const SizedBox(height: 10),
+                  Divider(color: Colors.grey),
+                  Text("Total Amount: ₹${orderDetails!["total_amount"].toStringAsFixed(2)}",
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.orange)),
+                ],
+              ),
+            ),
           ),
-
-          const SizedBox(height: 20),
-
         ],
       ),
     );
   }
 
+  Widget buildOrderItemCard(Map<String, dynamic> item) {
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      color: Colors.grey[850],
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: ListTile(
+        leading: ClipRRect(
+          borderRadius: BorderRadius.circular(10),
+          child: item['image'].isNotEmpty
+              ? Image.network(item['image'], width: 50, height: 50, fit: BoxFit.cover)
+              : const Icon(Icons.image_not_supported, size: 50, color: Colors.grey),
+        ),
+        title: Text(item['product'], style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text("Qty: ${item['quantity']} - ₹${item['price'].toStringAsFixed(2)}", style: TextStyle(color: Colors.white70)),
+            Text("Total: ₹${item['total'].toStringAsFixed(2)}", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.orange)),
+            const SizedBox(height: 5),
+            Chip(
+              backgroundColor: getOrderStatusColor(item['status']).withOpacity(0.2),
+              label: Text(getOrderStatusText(item['status']), style: TextStyle(color: getOrderStatusColor(item['status']), fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   String getOrderStatusText(int status) {
-    switch (status) {
-      case 1:
-        return 'Processing';
-      case 2:
-        return 'Shipped';
-      case 3:
-        return 'Delivered';
-      case 4:
-        return 'Cancelled';
-      default:
-        return 'Unknown';
-    }
+    return ["Processing", "Shipped", "Delivered", "Cancelled"][status - 1];
   }
 
   Color getOrderStatusColor(int status) {
-    switch (status) {
-      case 1:
-        return Colors.blue;
-      case 2:
-        return Colors.orange;
-      case 3:
-        return Colors.green;
-      case 4:
-        return Colors.red;
-      default:
-        return Colors.grey;
-    }
+    return [Colors.blue, Colors.orange, Colors.green, Colors.red][status - 1];
   }
 }

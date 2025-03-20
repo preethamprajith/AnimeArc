@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class Browse extends StatefulWidget {
   const Browse({super.key});
@@ -9,20 +10,48 @@ class Browse extends StatefulWidget {
 
 class _BrowseState extends State<Browse> with SingleTickerProviderStateMixin {
   late TabController _tabController;
-
-  final List<String> animeList = [
-    "Solo Leveling",
-    "Shangri-La Frontier",
-    "Digimon Adventure",
-    "Undead Unluck",
-    "Attack on Titan",
-    "Jujutsu Kaisen",
-  ];
+  List<Map<String, dynamic>> animeList = [];
+  List<Map<String, dynamic>> genreList = [];
+  String? selectedGenre;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 2, vsync: this);
+    fetchAnime();
+    fetchGenres();
+  }
+
+  Future<void> fetchAnime({String? genreId}) async {
+    try {
+      var query = Supabase.instance.client
+          .from('tbl_anime')
+          .select('anime_id, anime_name, anime_poster, genre_id, tbl_genre(genre_name)');
+
+      if (genreId != null) {
+        query = query.eq('genre_id', genreId);
+      }
+
+      final response = await query;
+      if (mounted) {
+        setState(() {
+          animeList = List<Map<String, dynamic>>.from(response);
+        });
+      }
+    } catch (e) {
+      print("Error fetching anime: $e");
+    }
+  }
+
+  Future<void> fetchGenres() async {
+    try {
+      final response = await Supabase.instance.client.from('tbl_genre').select();
+      if (mounted) {
+        setState(() => genreList = List<Map<String, dynamic>>.from(response));
+      }
+    } catch (e) {
+      print("Error fetching genres: $e");
+    }
   }
 
   @override
@@ -47,58 +76,94 @@ class _BrowseState extends State<Browse> with SingleTickerProviderStateMixin {
           indicatorColor: Colors.red,
           labelColor: Colors.white,
           unselectedLabelColor: Colors.grey,
+          onTap: (index) {
+            if (index == 1) {
+              fetchGenres();
+            } else {
+              fetchAnime();
+            }
+          },
           tabs: const [
             Tab(text: "ALL ANIME"),
-            Tab(text: "SIMULCASTS"),
             Tab(text: "ANIME GENRES"),
-            Tab(text: "MUSIC"),
           ],
         ),
       ),
       backgroundColor: Colors.black87,
-      body: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Padding(
-              padding: EdgeInsets.all(8.0),
-              child: Text(
-                "Popular",
-                style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-            ),
-            SizedBox(
-              height: 150,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: animeList.length,
-                itemBuilder: (context, index) {
-                  return buildAnimeCard(animeList[index]);
-                },
-              ),
-            ),
-          ],
-        ),
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          buildAnimeGrid(),
+          buildGenreSelection(),
+        ],
       ),
-     
     );
   }
 
-  Widget buildAnimeCard(String title) {
-    return Container(
-      width: 120,
-      margin: const EdgeInsets.symmetric(horizontal: 8),
-      child: Card(
-        color: Colors.grey[900],
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        child: Center(
-          child: Text(
-            title,
-            style: const TextStyle(color: Colors.white, fontSize: 14),
-            textAlign: TextAlign.center,
+  Widget buildAnimeGrid() {
+    return animeList.isEmpty
+        ? const Center(child: CircularProgressIndicator())
+        : GridView.builder(
+            padding: const EdgeInsets.all(8),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: 8,
+              mainAxisSpacing: 8,
+              childAspectRatio: 0.7,
+            ),
+            itemCount: animeList.length,
+            itemBuilder: (context, index) {
+              final anime = animeList[index];
+              return buildAnimeCard(
+                anime['anime_name'],
+                anime['anime_poster'],
+                anime['tbl_genre']['genre_name'],
+              );
+            },
+          );
+  }
+
+  Widget buildGenreSelection() {
+    return ListView(
+      children: genreList.map((genre) {
+        return ListTile(
+          title: Text(
+            genre['genre_name'],
+            style: const TextStyle(color: Colors.white),
           ),
-        ),
+          trailing: const Icon(Icons.arrow_forward, color: Colors.white),
+          onTap: () {
+            setState(() {
+              selectedGenre = genre['genre_id'].toString();
+            });
+            fetchAnime(genreId: selectedGenre);
+            _tabController.animateTo(0);
+          },
+        );
+      }).toList(),
+    );
+  }
+
+  Widget buildAnimeCard(String title, String? imageUrl, String genre) {
+    return Card(
+      color: Colors.grey[900],
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          imageUrl != null
+              ? Image.network(imageUrl, height: 120, width: double.infinity, fit: BoxFit.cover)
+              : const Icon(Icons.image_not_supported, size: 80, color: Colors.grey),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Column(
+              children: [
+                Text(title, style: const TextStyle(color: Colors.white, fontSize: 14), textAlign: TextAlign.center),
+                Text(genre, style: const TextStyle(color: Colors.redAccent, fontSize: 12), textAlign: TextAlign.center),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

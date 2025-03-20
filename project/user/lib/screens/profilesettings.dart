@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:user/main.dart';
 
 class Profilesettings extends StatefulWidget {
   const Profilesettings({super.key});
@@ -15,6 +14,8 @@ class _ProfilesettingsState extends State<Profilesettings> {
   final TextEditingController _useraddressController = TextEditingController();
   final TextEditingController _usercontactController = TextEditingController();
 
+  bool isLoading = false;
+
   @override
   void initState() {
     super.initState();
@@ -23,9 +24,9 @@ class _ProfilesettingsState extends State<Profilesettings> {
 
   Future<void> fetchUserData() async {
     try {
-      final user = supabase.auth.currentUser;
+      final user = Supabase.instance.client.auth.currentUser;
       if (user != null) {
-        final response = await supabase
+        final response = await Supabase.instance.client
             .from('tbl_user')
             .select()
             .eq('user_id', user.id)
@@ -45,10 +46,12 @@ class _ProfilesettingsState extends State<Profilesettings> {
 
   Future<void> updateUserData() async {
     try {
-      final user = supabase.auth.currentUser;
+      setState(() => isLoading = true);
+
+      final user = Supabase.instance.client.auth.currentUser;
       if (user == null) return;
 
-      await supabase.from('tbl_user').update({
+      await Supabase.instance.client.from('tbl_user').update({
         'user_name': _usernameController.text,
         'user_email': _useremailController.text,
         'user_address': _useraddressController.text,
@@ -59,12 +62,15 @@ class _ProfilesettingsState extends State<Profilesettings> {
         content: Text("Profile Updated Successfully!", style: TextStyle(color: Colors.white)),
         backgroundColor: Colors.green,
       ));
+
+      setState(() => isLoading = false);
     } catch (e) {
       print("ERROR UPDATING USER DATA: $e");
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
         content: Text("Error updating profile!", style: TextStyle(color: Colors.white)),
         backgroundColor: Colors.red,
       ));
+      setState(() => isLoading = false);
     }
   }
 
@@ -76,42 +82,73 @@ class _ProfilesettingsState extends State<Profilesettings> {
         backgroundColor: Colors.orange,
         title: const Text(
           "Edit Profile",
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20),
         ),
         centerTitle: true,
+        elevation: 4,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(20.0),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
         child: Column(
           children: [
-            const SizedBox(height: 20),
+            // Profile Picture Section
+            Center(
+              child: Stack(
+                children: [
+                  const CircleAvatar(
+                    radius: 50,
+                    backgroundColor: Colors.orangeAccent,
+                    child: Icon(Icons.person, size: 50, color: Colors.white),
+                  ),
+                  Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.orange,
+                        border: Border.all(color: Colors.black, width: 2),
+                      ),
+                      child: IconButton(
+                        icon: const Icon(Icons.camera_alt, color: Colors.white, size: 20),
+                        onPressed: () {
+                          // Implement Profile Picture Upload
+                        },
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 30),
 
+            // Form Fields
             _buildTextField(controller: _usernameController, label: "User Name"),
-            const SizedBox(height: 20),
-
-            _buildTextField(controller: _useremailController, label: "Email ID"),
-            const SizedBox(height: 20),
-
+            const SizedBox(height: 15),
+            _buildTextField(controller: _useremailController, label: "Email ID", isEmail: true),
+            const SizedBox(height: 15),
             _buildTextField(controller: _useraddressController, label: "Address"),
-            const SizedBox(height: 20),
-
+            const SizedBox(height: 15),
             _buildTextField(controller: _usercontactController, label: "Contact Number"),
             const SizedBox(height: 30),
 
+            // Update Button
             ElevatedButton(
-              onPressed: updateUserData,
+              onPressed: isLoading ? null : updateUserData,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.orange,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 minimumSize: const Size(double.infinity, 50),
-                elevation: 5,
+                elevation: 6,
               ),
-              child: const Text(
-                "Update Profile",
-                style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-              ),
+              child: isLoading
+                  ? const CircularProgressIndicator(color: Colors.white)
+                  : const Text(
+                      "Update Profile",
+                      style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
             ),
           ],
         ),
@@ -119,19 +156,36 @@ class _ProfilesettingsState extends State<Profilesettings> {
     );
   }
 
-  Widget _buildTextField({required TextEditingController controller, required String label}) {
-    return TextFormField(
-      controller: controller,
-      style: const TextStyle(color: Colors.white),
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: const TextStyle(color: Colors.white),
-        border: const OutlineInputBorder(),
-        enabledBorder: const OutlineInputBorder(
-          borderSide: BorderSide(color: Colors.white),
-        ),
-        focusedBorder: const OutlineInputBorder(
-          borderSide: BorderSide(color: Colors.orange),
+  Widget _buildTextField({required TextEditingController controller, required String label, bool isEmail = false}) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.grey[900],
+        borderRadius: BorderRadius.circular(10),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.orange.withOpacity(0.2),
+            blurRadius: 6,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: TextFormField(
+        controller: controller,
+        style: const TextStyle(color: Colors.white),
+        keyboardType: isEmail ? TextInputType.emailAddress : TextInputType.text,
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: const TextStyle(color: Colors.white),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: BorderSide(color: Colors.orange.withOpacity(0.6)),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: const BorderSide(color: Colors.orange, width: 2),
+          ),
         ),
       ),
     );
