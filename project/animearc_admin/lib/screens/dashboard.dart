@@ -63,7 +63,7 @@ class _AdminHomeState extends State<AdminHome> {
     Managebooking(),
     UploadAnimeVideo(),
     ManageManga(),
-    Managemangafile(),
+    
     ComplaintPage(),
     
   ];

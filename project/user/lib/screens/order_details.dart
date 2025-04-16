@@ -85,171 +85,246 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        title: Text("Order #${widget.orderId}",
-            style: const TextStyle(color: Colors.white)),
-        backgroundColor: Colors.orange,
-        centerTitle: true,
-        elevation: 4,
-      ),
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator(color: Colors.orange))
-          : errorMessage.isNotEmpty
-              ? Center(
-                  child: Text(errorMessage,
-                      style: const TextStyle(color: Colors.red, fontSize: 16)))
-              : orderDetails == null
-                  ? const Center(
-                      child: Text("Order not found",
-                          style: TextStyle(color: Colors.white)))
-                  : buildOrderDetails(),
-    );
+    try {
+      return Scaffold(
+        backgroundColor: Colors.black,
+        appBar: AppBar(
+          title: Text("Order #${widget.orderId}",
+              style: const TextStyle(color: Colors.white)),
+          backgroundColor: Colors.orange,
+          centerTitle: true,
+          elevation: 4,
+        ),
+        body: isLoading
+            ? const Center(child: CircularProgressIndicator(color: Colors.orange))
+            : errorMessage.isNotEmpty
+                ? Center(
+                    child: Text(errorMessage,
+                        style: const TextStyle(color: Colors.red, fontSize: 16)))
+                : orderDetails == null
+                    ? const Center(
+                        child: Text("Order not found",
+                            style: TextStyle(color: Colors.white)))
+                    : buildOrderDetails(),
+      );
+    } catch (e) {
+      return Scaffold(
+        backgroundColor: Colors.black,
+        appBar: AppBar(
+          title: const Text("Error Loading Order",
+              style: TextStyle(color: Colors.white)),
+          backgroundColor: Colors.red,
+          centerTitle: true,
+        ),
+        body: Center(
+          child: Text("Error in build method: $e",
+              style: const TextStyle(color: Colors.red)),
+        ),
+      );
+    }
   }
 
   Widget buildOrderDetails() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Card(
-            color: Colors.grey[900],
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text("Order Items",
-                      style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white)),
-                  const SizedBox(height: 10),
-                  ListView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: orderItems.length,
-                    itemBuilder: (context, index) {
-                      final item = orderItems[index];
-                      return buildOrderItemCard(item);
-                    },
-                  ),
-                  const SizedBox(height: 10),
-                  Divider(color: Colors.grey),
-                  Text(
-                      "Total Amount: ₹${orderDetails!["total_amount"].toStringAsFixed(2)}",
-                      style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.orange)),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget buildOrderItemCard(Map<String, dynamic> item) {
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      color: Colors.grey[850],
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: Row(
+    try {
+      return SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(10),
-              child: item['image'].isNotEmpty
-                  ? Image.network(item['image'],
-                      width: 50, height: 50, fit: BoxFit.cover)
-                  : const Icon(Icons.image_not_supported,
-                      size: 50, color: Colors.grey),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(item['product'],
-                      style: const TextStyle(
-                          fontWeight: FontWeight.bold, color: Colors.white)),
-                  const SizedBox(height: 5),
-                  Text(
-                      "Qty: ${item['quantity']} - ₹${item['price'].toStringAsFixed(2)}",
-                      style: const TextStyle(color: Colors.white70)),
-                  Text("Total: ₹${item['total'].toStringAsFixed(2)}",
-                      style: const TextStyle(
-                          fontWeight: FontWeight.bold, color: Colors.orange)),
-                  const SizedBox(height: 5),
-                  Chip(
-                    backgroundColor:
-                        getOrderStatusColor(item['status']).withOpacity(0.2),
-                    label: Text(getOrderStatusText(item['status']),
+            Card(
+              color: Colors.grey[900],
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text("Order Items",
                         style: TextStyle(
-                            color: getOrderStatusColor(item['status']),
-                            fontWeight: FontWeight.bold)),
-                  ),
-                  if (item['status'] == 3 && item['booking_trackid'].isNotEmpty)
-                    TextButton.icon(
-                      onPressed: () async {
-                        final trackId = item['booking_trackid'].toString();
-                        final url =
-                            'https://www.indiapost.gov.in/_layouts/15/dop.portal.tracking/trackconsignment.aspx?tracknum=$trackId';
-                        await Clipboard.setData(ClipboardData(text: trackId));
-                        if (await canLaunchUrl(Uri.parse(url))) {
-                          await launchUrl(Uri.parse(url),
-                              mode: LaunchMode.externalApplication);
-                        } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content: Text("Could not launch tracking URL")),
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white)),
+                    const SizedBox(height: 10),
+                    ListView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: orderItems.length,
+                      itemBuilder: (context, index) {
+                        try {
+                          final item = orderItems[index];
+                          return buildOrderItemCard(item);
+                        } catch (e) {
+                          return Card(
+                            color: Colors.red.withOpacity(0.3),
+                            child: Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: Text("Error loading item: $e", 
+                                  style: const TextStyle(color: Colors.white)),
+                            ),
                           );
                         }
                       },
-                      icon: const Icon(Icons.local_shipping_outlined,
-                          color: Colors.white70),
-                      label: Text("Track ID: ${item['booking_trackid']}",
-                          style: const TextStyle(color: Colors.white70)),
                     ),
-                ],
+                    const SizedBox(height: 10),
+                    Divider(color: Colors.grey),
+                    Text(
+                        "Total Amount: ₹${orderDetails!["total_amount"].toStringAsFixed(2)}",
+                        style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.orange)),
+                  ],
+                ),
               ),
             ),
           ],
         ),
-      ),
-    );
+      );
+    } catch (e) {
+      return Center(
+        child: Card(
+          color: Colors.red.withOpacity(0.3),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Text("Error in buildOrderDetails: $e",
+                style: const TextStyle(color: Colors.white)),
+          ),
+        ),
+      );
+    }
+  }
+
+  Widget buildOrderItemCard(Map<String, dynamic> item) {
+    try {
+      return Card(
+        margin: const EdgeInsets.symmetric(vertical: 8),
+        color: Colors.grey[850],
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: item['image'].toString().isNotEmpty
+                    ? Image.network(item['image'].toString(),
+                        width: 50, height: 50, fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return const Icon(Icons.error_outline,
+                              size: 50, color: Colors.red);
+                        })
+                    : const Icon(Icons.image_not_supported,
+                        size: 50, color: Colors.grey),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(item['product']?.toString() ?? "Unknown Product",
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, color: Colors.white)),
+                    const SizedBox(height: 5),
+                    Text(
+                        "Qty: ${item['quantity']} - ₹${item['price']?.toStringAsFixed(2) ?? '0.00'}",
+                        style: const TextStyle(color: Colors.white70)),
+                    Text("Total: ₹${item['total']?.toStringAsFixed(2) ?? '0.00'}",
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, color: Colors.orange)),
+                    const SizedBox(height: 5),
+                    Chip(
+                      backgroundColor:
+                          getOrderStatusColor(item['status'] ?? 0).withOpacity(0.2),
+                      label: Text("${getOrderStatusText(item['status'] ?? 0)} (${item['status'] ?? 'null'})",
+                          style: TextStyle(
+                              color: getOrderStatusColor(item['status'] ?? 0),
+                              fontWeight: FontWeight.bold)),
+                    ),
+                    Text("Track ID Value: '${item['booking_trackid']}'", 
+                        style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                    if ((item['status'] == 3 || item['status'] == 2) && 
+                        item['booking_trackid']?.toString().isNotEmpty == true)
+                      TextButton.icon(
+                        onPressed: () async {
+                          try {
+                            final trackId = item['booking_trackid'].toString();
+                            final url =
+                                'https://www.indiapost.gov.in/_layouts/15/dop.portal.tracking/trackconsignment.aspx?tracknum=$trackId';
+                            await Clipboard.setData(ClipboardData(text: trackId));
+                            if (await canLaunchUrl(Uri.parse(url))) {
+                              await launchUrl(Uri.parse(url),
+                                  mode: LaunchMode.externalApplication);
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                    content: Text("Could not launch tracking URL")),
+                              );
+                            }
+                          } catch (e) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                  content: Text("Error in tracking: $e"),
+                                  backgroundColor: Colors.red),
+                            );
+                          }
+                        },
+                        icon: const Icon(Icons.local_shipping_outlined,
+                            color: Colors.white70),
+                        label: Text("Track ID: ${item['booking_trackid']}",
+                            style: const TextStyle(color: Colors.white70)),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    } catch (e) {
+      return Card(
+        margin: const EdgeInsets.symmetric(vertical: 8),
+        color: Colors.red.withOpacity(0.3),
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Text("Error in buildOrderItemCard: $e",
+              style: const TextStyle(color: Colors.white)),
+        ),
+      );
+    }
   }
 
   String getOrderStatusText(int status) {
-    switch (status) {
-      case 1:
-        return "Confirmed";
-      case 2:
-        return "Shipped";
-      case 3:
-        return "Delivered";
-      default:
-        return "Cancelled";
+    try {
+      switch (status) {
+        case 1:
+          return "Confirmed";
+        case 2:
+          return "Shipped";
+        case 3:
+          return "Delivered";
+        default:
+          return "Cancelled";
+      }
+    } catch (e) {
+      return "Error: $e";
     }
   }
 
   Color getOrderStatusColor(int status) {
-    switch (status) {
-      case 1:
-        return Colors.blue;
-      case 2:
-        return Colors.orange;
-      case 3:
-        return Colors.green;
-      default:
-        return Colors.red;
+    try {
+      switch (status) {
+        case 1:
+          return Colors.blue;
+        case 2:
+          return Colors.orange;
+        case 3:
+          return Colors.green;
+        default:
+          return Colors.red;
+      }
+    } catch (e) {
+      return Colors.red;
     }
   }
 }
