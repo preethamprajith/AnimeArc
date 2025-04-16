@@ -34,11 +34,11 @@ class _PaymentScreenState extends State<PaymentScreen> {
     try {
       await supabase
           .from('tbl_booking')
-          .update({'booking_status': '2', 'booking_amount': widget.total})
+          .update({'booking_status': '1', 'booking_amount': widget.total})
           .match({'booking_id': widget.bid});
       await supabase
           .from('tbl_cart')
-          .update({'cart_status': '2'})
+          .update({'cart_status': '1'})
           .match({'booking_id': widget.bid});
 
       Navigator.pushReplacement(

@@ -18,19 +18,31 @@ class _RegisterPageState extends State<RegisterPage> {
   final TextEditingController _usercontactController = TextEditingController();
 
   Future<void> register() async {
-    try {
-      final auth = await supabase.auth.signUp(
-        password: _userpassController.text,
-        email: _useremailController.text,
+  try {
+    final auth = await supabase.auth.signUp(
+      email: _useremailController.text.trim(),
+      password: _userpassController.text.trim(),
+    );
+
+    final uid = auth.user?.id;
+    if (uid != null && uid.isNotEmpty) {
+      insertuser(uid);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Registration successful!")),
       );
-      final uid = auth.user?.id;
-      if (uid != null && uid.isNotEmpty) {
-        insertuser(uid);
-      }
-    } catch (e) {
-      print("AUTH ERROR: $e");
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Registration failed: No user ID returned")),
+      );
     }
+  } catch (e) {
+    print("AUTH ERROR: $e");
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Registration error: ${e.toString()}")),
+    );
   }
+}
+
 
   Future<void> insertuser(final id) async {
     try {

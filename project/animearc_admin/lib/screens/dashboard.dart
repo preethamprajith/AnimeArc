@@ -1,4 +1,6 @@
 import 'package:animearc_admin/screens/manageanimefile.dart';
+import 'package:animearc_admin/screens/managemanga.dart';
+import 'package:animearc_admin/screens/managemangafile.dart';
 import 'package:flutter/material.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:animearc_admin/components/appbar.dart';
@@ -60,6 +62,8 @@ class _AdminHomeState extends State<AdminHome> {
     Managestock(),
     Managebooking(),
     UploadAnimeVideo(),
+    ManageManga(),
+    Managemangafile(),
     ComplaintPage(),
     
   ];

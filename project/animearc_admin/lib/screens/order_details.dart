@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class OrderDetailsPage extends StatefulWidget {
   final int bid;
@@ -24,6 +26,15 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
 
       print("Supabase Response: $response");
 
+      // Fetch booking_trackid from tbl_booking
+      final bookingResponse = await supabase
+          .from('tbl_booking')
+          .select('booking_trackid')
+          .eq('booking_id', widget.bid)
+          .single();
+
+      final bookingTrackId = bookingResponse['booking_trackid'] ?? '';
+
       if (response.isEmpty) {
         print("No items found for booking_id: ${widget.bid}");
         setState(() => orderItems = []);
@@ -44,7 +55,8 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
           'qty': quantity,
           'price': price,
           'total': total,
-          'status': item['cart_status']
+          'status': item['cart_status'],
+          'booking_trackid': bookingTrackId, // <-- Add this line
         };
       }).toList();
 
@@ -54,12 +66,64 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
     }
   }
 
+  final TextEditingController trackingID = TextEditingController();
+
   Future<void> update(int id, int status) async {
     try {
+      if(status==2){
+        showDialog(context: context, builder: (context) {
+          return AlertDialog(
+            title: Text("Enter Tracking ID"),
+            content: Form(child: TextFormField(
+              decoration: InputDecoration(
+                labelText: "Tracking ID",
+                border: OutlineInputBorder(),
+              ),
+              controller: trackingID,
+            )),
+            actions: [
+              TextButton(onPressed: (){
+                Navigator.pop(context);
+                
+              }, child: Text("Cancel")),
+              TextButton(
+                onPressed: () async {
+                  try {
+                    if (trackingID.text.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text("Please enter tracking ID")));
+                      return;
+                    }
+                    await supabase
+                        .from('tbl_cart')
+                        .update({'cart_status': status + 1})
+                        .eq('cart_id', id);
+                    await supabase.from('tbl_booking').update({
+                      'booking_trackid': trackingID.text,
+                    }).eq('booking_id', widget.bid);
+
+                    // Show SnackBar using the root context
+                    Navigator.pop(context); // Close dialog first
+                    ScaffoldMessenger.of(this.context).showSnackBar(
+                      const SnackBar(content: Text("Order status updated!")));
+                    fetchItems();
+                  } catch (e) {
+                    print("Error tracking update: $e");
+                    Navigator.pop(context);
+                  }
+                },
+                child: Text("Submit"),
+              ),
+            ],
+          );
+        },);
+      }
+      else{
       await supabase
           .from('tbl_cart')
           .update({'cart_status': status + 1})
           .eq('cart_id', id);
+    }
       fetchItems();
       ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Order status updated!")));
@@ -148,11 +212,11 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
       case 2:
         statusColor = Colors.orange;
         status = "Order Packed";
-        btn = "Order Completed";
+        btn = "Order Shipped";
         break;
       case 3:
         statusColor = Colors.green;
-        status = "Order Complete";
+        status = "Order Delivered";
         break;
       default:
         statusColor = Colors.grey;
@@ -215,6 +279,25 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
                             fontWeight: FontWeight.bold,
                             fontSize: 12)),
                   ),
+                  if (item['status'] == 3)
+                    TextButton.icon(
+                      onPressed: () async {
+                        final trackId = item['booking_trackid'].toString();
+                        final url = 'https://www.indiapost.gov.in/_layouts/15/dop.portal.tracking/trackconsignment.aspx?tracknum=$trackId';
+                        await Clipboard.setData(ClipboardData(text: trackId));
+                        if (await canLaunchUrl(Uri.parse(url))) {
+                          await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text("Could not launch tracking URL")),
+                          );
+                        }
+                      },
+                      icon: Icon(Icons.local_shipping_outlined),
+                      label: Text("Track ID: ${item['booking_trackid']}"),
+                    )
+                  else
+                    const SizedBox(),
                   if (item['status'] < 3)
                     Align(
                       alignment: Alignment.centerRight,

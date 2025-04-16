@@ -18,7 +18,7 @@ class _ManagebookingState extends State<Managebooking> {
         .from('tbl_booking')
         .select(
             'booking_id, booking_data, booking_status, tbl_cart(cart_qty, product_id, cart_status), tbl_user(user_address)')
-        .eq('booking_status', 2)
+        .eq('booking_status', 1)
         .order('booking_id', ascending: false);
 
     List<Map<String, dynamic>> filteredBookings = [];
@@ -26,7 +26,7 @@ class _ManagebookingState extends State<Managebooking> {
     for (var booking in response) {
       if (booking['tbl_cart'] != null) {
         List<dynamic> filteredCart = (booking['tbl_cart'] as List<dynamic>)
-            .where((cart) => cart['cart_status'] == 2)
+            .where((cart) => cart['cart_status'] >= 1)
             .toList();
 
         if (filteredCart.isNotEmpty) {

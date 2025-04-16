@@ -68,7 +68,7 @@ class _StoreState extends State<Store> {
                     crossAxisCount: 2,
                     crossAxisSpacing: 8,
                     mainAxisSpacing: 8,
-                    childAspectRatio: 0.7,
+                    childAspectRatio: 0.6,
                   ),
                   itemCount: merchandise.length,
                   itemBuilder: (context, index) {

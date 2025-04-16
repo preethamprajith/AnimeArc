@@ -107,27 +107,26 @@ class _CartState extends State<Cart> {
     }
 
     try {
-      final response = await supabase
-          .from('tbl_cart')
-          .update({'cart_status': 1})
-          .eq('booking_id', bid!)
-          .select();
+      // final response = await supabase
+      //     .from('tbl_cart')
+      //     .update({'cart_status': 1})
+      //     .eq('booking_id', bid!)
+      //     .select();
 
-      await supabase.from('tbl_booking').update({'booking_status': 1}).eq('booking_id', bid!);
+      // await supabase.from('tbl_booking').update({'booking_status': 1}).eq('booking_id', bid!);
 
-      if (response.isEmpty) {
-        throw Exception("Failed to update order status.");
-      }
+    
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('PAYMENT AND ADDRESS DETAILS')),
-      );
+      // ScaffoldMessenger.of(context).showSnackBar(
+      //   SnackBar(content: Text('PAYMENT AND ADDRESS DETAILS')),
+      // );
 
-      fetchCartItems();
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => Pay(bid: bid!)),
-      );
+      
+       await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => Pay(bid: bid!)),
+    );
+    fetchCartItems();
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to place order. Please try again.')),

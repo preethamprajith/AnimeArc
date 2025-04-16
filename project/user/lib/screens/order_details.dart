@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:user/main.dart';
+import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class OrderDetailsPage extends StatefulWidget {
   final int orderId;
@@ -27,7 +28,7 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
     try {
       final orderResponse = await supabase
           .from('tbl_booking')
-          .select()
+          .select('*, booking_trackid')
           .eq('booking_id', widget.orderId)
           .maybeSingle();
 
@@ -46,7 +47,9 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
 
       List<Map<String, dynamic>> items = itemsResponse.map((item) {
         int quantity = int.tryParse(item['cart_qty'].toString()) ?? 1;
-        double price = double.tryParse(item['tbl_product']['product_price'].toString()) ?? 0.0;
+        double price =
+            double.tryParse(item['tbl_product']['product_price'].toString()) ??
+                0.0;
         double total = price * quantity;
 
         return {
@@ -56,15 +59,18 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
           "price": price,
           "quantity": quantity,
           "total": total,
-          "status": item['cart_status']
+          "status": item['cart_status'],
+          "booking_trackid": orderResponse['booking_trackid'] ?? '',
         };
       }).toList();
 
       setState(() {
         orderDetails = {
           ...orderResponse,
-          "booking_status": int.tryParse(orderResponse['booking_status'].toString()) ?? 0,
-          "total_amount": double.tryParse(orderResponse['booking_amount'].toString()) ?? 0.0,
+          "booking_status":
+              int.tryParse(orderResponse['booking_status'].toString()) ?? 0,
+          "total_amount":
+              double.tryParse(orderResponse['booking_amount'].toString()) ?? 0.0,
         };
         orderItems = items;
         isLoading = false;
@@ -82,7 +88,8 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
-        title: Text("Order #${widget.orderId}", style: TextStyle(color: Colors.white)),
+        title: Text("Order #${widget.orderId}",
+            style: const TextStyle(color: Colors.white)),
         backgroundColor: Colors.orange,
         centerTitle: true,
         elevation: 4,
@@ -90,9 +97,13 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
       body: isLoading
           ? const Center(child: CircularProgressIndicator(color: Colors.orange))
           : errorMessage.isNotEmpty
-              ? Center(child: Text(errorMessage, style: TextStyle(color: Colors.red, fontSize: 16)))
+              ? Center(
+                  child: Text(errorMessage,
+                      style: const TextStyle(color: Colors.red, fontSize: 16)))
               : orderDetails == null
-                  ? const Center(child: Text("Order not found", style: TextStyle(color: Colors.white)))
+                  ? const Center(
+                      child: Text("Order not found",
+                          style: TextStyle(color: Colors.white)))
                   : buildOrderDetails(),
     );
   }
@@ -111,7 +122,11 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text("Order Items", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
+                  const Text("Order Items",
+                      style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white)),
                   const SizedBox(height: 10),
                   ListView.builder(
                     shrinkWrap: true,
@@ -124,8 +139,12 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
                   ),
                   const SizedBox(height: 10),
                   Divider(color: Colors.grey),
-                  Text("Total Amount: ₹${orderDetails!["total_amount"].toStringAsFixed(2)}",
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.orange)),
+                  Text(
+                      "Total Amount: ₹${orderDetails!["total_amount"].toStringAsFixed(2)}",
+                      style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.orange)),
                 ],
               ),
             ),
@@ -140,23 +159,67 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
       margin: const EdgeInsets.symmetric(vertical: 8),
       color: Colors.grey[850],
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: ListTile(
-        leading: ClipRRect(
-          borderRadius: BorderRadius.circular(10),
-          child: item['image'].isNotEmpty
-              ? Image.network(item['image'], width: 50, height: 50, fit: BoxFit.cover)
-              : const Icon(Icons.image_not_supported, size: 50, color: Colors.grey),
-        ),
-        title: Text(item['product'], style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
-        subtitle: Column(
+      child: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text("Qty: ${item['quantity']} - ₹${item['price'].toStringAsFixed(2)}", style: TextStyle(color: Colors.white70)),
-            Text("Total: ₹${item['total'].toStringAsFixed(2)}", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.orange)),
-            const SizedBox(height: 5),
-            Chip(
-              backgroundColor: getOrderStatusColor(item['status']).withOpacity(0.2),
-              label: Text(getOrderStatusText(item['status']), style: TextStyle(color: getOrderStatusColor(item['status']), fontWeight: FontWeight.bold)),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: item['image'].isNotEmpty
+                  ? Image.network(item['image'],
+                      width: 50, height: 50, fit: BoxFit.cover)
+                  : const Icon(Icons.image_not_supported,
+                      size: 50, color: Colors.grey),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(item['product'],
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold, color: Colors.white)),
+                  const SizedBox(height: 5),
+                  Text(
+                      "Qty: ${item['quantity']} - ₹${item['price'].toStringAsFixed(2)}",
+                      style: const TextStyle(color: Colors.white70)),
+                  Text("Total: ₹${item['total'].toStringAsFixed(2)}",
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold, color: Colors.orange)),
+                  const SizedBox(height: 5),
+                  Chip(
+                    backgroundColor:
+                        getOrderStatusColor(item['status']).withOpacity(0.2),
+                    label: Text(getOrderStatusText(item['status']),
+                        style: TextStyle(
+                            color: getOrderStatusColor(item['status']),
+                            fontWeight: FontWeight.bold)),
+                  ),
+                  if (item['status'] == 3 && item['booking_trackid'].isNotEmpty)
+                    TextButton.icon(
+                      onPressed: () async {
+                        final trackId = item['booking_trackid'].toString();
+                        final url =
+                            'https://www.indiapost.gov.in/_layouts/15/dop.portal.tracking/trackconsignment.aspx?tracknum=$trackId';
+                        await Clipboard.setData(ClipboardData(text: trackId));
+                        if (await canLaunchUrl(Uri.parse(url))) {
+                          await launchUrl(Uri.parse(url),
+                              mode: LaunchMode.externalApplication);
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                                content: Text("Could not launch tracking URL")),
+                          );
+                        }
+                      },
+                      icon: const Icon(Icons.local_shipping_outlined,
+                          color: Colors.white70),
+                      label: Text("Track ID: ${item['booking_trackid']}",
+                          style: const TextStyle(color: Colors.white70)),
+                    ),
+                ],
+              ),
             ),
           ],
         ),
@@ -165,10 +228,28 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
   }
 
   String getOrderStatusText(int status) {
-    return ["Processing", "Shipped", "Delivered", "Cancelled"][status - 1];
+    switch (status) {
+      case 1:
+        return "Confirmed";
+      case 2:
+        return "Shipped";
+      case 3:
+        return "Delivered";
+      default:
+        return "Cancelled";
+    }
   }
 
   Color getOrderStatusColor(int status) {
-    return [Colors.blue, Colors.orange, Colors.green, Colors.red][status - 1];
+    switch (status) {
+      case 1:
+        return Colors.blue;
+      case 2:
+        return Colors.orange;
+      case 3:
+        return Colors.green;
+      default:
+        return Colors.red;
+    }
   }
 }

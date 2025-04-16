@@ -15,20 +15,24 @@ class _LoginState extends State<Login> {
   final TextEditingController _orguseremailController = TextEditingController();
   final TextEditingController _orguserpassController = TextEditingController();
 
-  Future<void> login() async {
-    try {
-      await supabase.auth.signInWithPassword(
-          password: _orguserpassController.text,
-          email: _orguseremailController.text);
-      Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => Dashboard(),
-          ));
-    } catch (e) {
-      print("Error occur in login:$e");
-    }
+ Future<void> login() async {
+  try {
+    await supabase.auth.signInWithPassword(
+      email: _orguseremailController.text,
+      password: _orguserpassController.text,
+    );
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => Dashboard()),
+    );
+  } catch (e) {
+    print("Error during login: $e");
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Login failed: ${e.toString()}")),
+    );
   }
+}
+
 
   bool _obscurePassword = true;
 
