@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:user/main.dart';
 import 'package:user/screens/order_details.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class OrdersPage extends StatefulWidget {
   const OrdersPage({super.key});
@@ -82,28 +83,77 @@ class _OrdersPageState extends State<OrdersPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        title: const Text(
-          "My Orders",
-          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(0xFF4A1A70), // Rich purple top
+              Color(0xFF2D0A4D), // Darker purple bottom
+            ],
+          ),
         ),
-        centerTitle: true,
-        backgroundColor: Colors.orange,
-        elevation: 4,
+        child: SafeArea(
+          child: Column(
+            children: [
+              _buildAppBar(),
+              Expanded(
+                child: isLoading
+                    ? _buildShimmerEffect()
+                    : orders.isEmpty
+                        ? _buildEmptyOrders()
+                        : ListView.builder(
+                            padding: const EdgeInsets.all(16),
+                            itemCount: orders.length,
+                            itemBuilder: (context, index) {
+                              var order = orders[index];
+                              return _buildOrderCard(order);
+                            },
+                          ),
+              ),
+            ],
+          ),
+        ),
       ),
-      body: isLoading
-          ? _buildShimmerEffect()
-          : orders.isEmpty
-              ? _buildEmptyOrders()
-              : ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: orders.length,
-                  itemBuilder: (context, index) {
-                    var order = orders[index];
-                    return _buildOrderCard(order);
-                  },
+    );
+  }
+
+  Widget _buildAppBar() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.3),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            onPressed: () => Navigator.pop(context),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Center(
+              child: Text(
+                "My Orders",
+                style: GoogleFonts.poppins(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
                 ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 40),
+        ],
+      ),
     );
   }
 
@@ -118,24 +168,62 @@ class _OrdersPageState extends State<OrdersPage> {
           ),
         );
       },
-      child: Card(
+      child: Container(
         margin: const EdgeInsets.only(bottom: 16),
-        color: Colors.grey[900],
-        elevation: 5,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Colors.grey[900]!.withOpacity(0.9),
+              Colors.grey[850]!.withOpacity(0.8),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFFBF55EC).withOpacity(0.3),
+              blurRadius: 10,
+              spreadRadius: 1,
+              offset: const Offset(0, 4),
+            ),
+          ],
+          border: Border.all(
+            color: const Color(0xFFE991FF).withOpacity(0.2),
+            width: 1,
+          ),
+        ),
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: Row(
             children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(10),
-                child: Image.network(
-                  order['image'],
-                  width: 80,
-                  height: 80,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) =>
-                      const Icon(Icons.image_not_supported, color: Colors.white),
+              Hero(
+                tag: 'order_image_${order["id"]}',
+                child: Container(
+                  width: 85,
+                  height: 85,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.3),
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.network(
+                      order['image'],
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) =>
+                          Container(
+                            color: Colors.grey[800],
+                            child: const Icon(Icons.image_not_supported, color: Colors.white54),
+                          ),
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(width: 16),
@@ -145,7 +233,7 @@ class _OrdersPageState extends State<OrdersPage> {
                   children: [
                     Text(
                       order['name'],
-                      style: const TextStyle(
+                      style: GoogleFonts.poppins(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
@@ -156,8 +244,8 @@ class _OrdersPageState extends State<OrdersPage> {
                     const SizedBox(height: 4),
                     Text(
                       "₹${order['price']}",
-                      style: const TextStyle(
-                        color: Colors.orange,
+                      style: GoogleFonts.poppins(
+                        color: const Color(0xFFE991FF),
                         fontSize: 15,
                         fontWeight: FontWeight.bold,
                       ),
@@ -165,21 +253,36 @@ class _OrdersPageState extends State<OrdersPage> {
                     const SizedBox(height: 4),
                     Text(
                       "Quantity: ${order['quantity']}",
-                      style: TextStyle(
+                      style: GoogleFonts.poppins(
                         color: Colors.grey[400],
                         fontSize: 14,
                       ),
                     ),
                     const SizedBox(height: 4),
-                    Text(
-                      "Ordered on: ${_formatDate(order['date'])}",
-                      style: TextStyle(
-                        color: Colors.grey[500],
-                        fontSize: 12,
-                      ),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.calendar_today_outlined,
+                          color: Colors.grey,
+                          size: 14,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          _formatDate(order['date']),
+                          style: GoogleFonts.poppins(
+                            color: Colors.grey[500],
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
+              ),
+              Icon(
+                Icons.arrow_forward_ios,
+                color: const Color(0xFFE991FF).withOpacity(0.5),
+                size: 16,
               ),
             ],
           ),
@@ -201,11 +304,51 @@ class _OrdersPageState extends State<OrdersPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.shopping_bag_outlined, size: 80, color: Colors.orange),
-          const SizedBox(height: 16),
-          const Text(
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                colors: [
+                  const Color(0xFFE991FF).withOpacity(0.3),
+                  const Color(0xFFBF55EC).withOpacity(0.3),
+                ],
+              ),
+            ),
+            child: const Icon(
+              Icons.shopping_bag_outlined,
+              size: 70,
+              color: Colors.white70,
+            ),
+          ),
+          const SizedBox(height: 24),
+          Text(
             "No confirmed orders found",
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500, color: Colors.white),
+            style: GoogleFonts.poppins(
+              fontSize: 18,
+              fontWeight: FontWeight.w500,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFBF55EC),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(30),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+            ),
+            child: Text(
+              "Explore Store",
+              style: GoogleFonts.poppins(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
         ],
       ),
@@ -219,22 +362,28 @@ class _OrdersPageState extends State<OrdersPage> {
       itemCount: 6,
       itemBuilder: (context, index) {
         return Shimmer.fromColors(
-          baseColor: Colors.grey[800]!,
-          highlightColor: Colors.grey[700]!,
-          child: Card(
+          baseColor: const Color(0xFF2D0A4D),
+          highlightColor: const Color(0xFF4A1A70),
+          child: Container(
             margin: const EdgeInsets.only(bottom: 16),
-            color: Colors.grey[900],
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            decoration: BoxDecoration(
+              color: Colors.grey[900],
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: Colors.purple.withOpacity(0.3),
+                width: 1,
+              ),
+            ),
             child: Padding(
               padding: const EdgeInsets.all(12),
               child: Row(
                 children: [
                   Container(
-                    width: 80,
-                    height: 80,
+                    width: 85,
+                    height: 85,
                     decoration: BoxDecoration(
                       color: Colors.grey[800],
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(12),
                     ),
                   ),
                   const SizedBox(width: 16),

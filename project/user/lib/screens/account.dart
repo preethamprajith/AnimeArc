@@ -5,6 +5,9 @@ import 'package:user/screens/login.dart';
 import 'package:user/screens/my_order.dart';
 import 'package:user/screens/privacy.dart';
 import 'package:user/screens/profilesettings.dart';
+import 'package:user/main.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:user/components/anime_button.dart';
 
 class Account extends StatefulWidget {
   const Account({super.key});
@@ -69,123 +72,272 @@ class _AccountState extends State<Account> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        backgroundColor: Colors.black,
-        title: const Text(
-          "Account",
-          style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: Text(
+          "Profile",
+          style: GoogleFonts.montserrat(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
         ),
         centerTitle: true,
         actions: [
           IconButton(
             onPressed: () {},
-            icon: const Icon(Icons.notifications, color: Colors.white),
-          ),
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.search, color: Colors.white),
+            icon: const Icon(Icons.notifications_outlined, color: Colors.white),
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Profile Section
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.grey[900],
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.orange.withOpacity(0.3),
-                    blurRadius: 10,
-                    spreadRadius: 2,
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    radius: 45,
-                    backgroundColor: Colors.orange.withOpacity(0.7),
-                    child: const Icon(Icons.person, color: Colors.white, size: 50),
-                  ),
-                  const SizedBox(width: 16),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        userName,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        userEmail,
-                        style: const TextStyle(color: Colors.orangeAccent, fontSize: 14),
-                      ),
-                    ],
-                  ),
+      body: Stack(
+        children: [
+          // Background gradient
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  AnimeTheme.primaryPurple, // Rich purple
+                  AnimeTheme.darkPurple,    // Darker purple
                 ],
               ),
             ),
-
-            const SizedBox(height: 20),
-
-            // Settings Options
-            _buildSettingItem(Icons.person_outline, "Edit Profile", const Profilesettings()),
-            _buildSettingItem(Icons.lock_outline, "Privacy & Security", const Security()),
-            _buildSettingItem(Icons.feedback_outlined, "Complaint & Feedback", const Complaint()),
-            _buildSettingItem(Icons.book_online, "My Orders", const OrdersPage()),
-            _buildSettingItem(Icons.logout, "Log Out", const Login(), isLogout: true),
-          ],
-        ),
+          ),
+          
+          // Content
+          isLoading
+              ? const Center(child: CircularProgressIndicator(color: AnimeTheme.accentPink))
+              : SafeArea(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Profile Section
+                        _buildProfileCard(),
+                        
+                        const SizedBox(height: 24),
+                        
+                        // Section title
+                        Padding(
+                          padding: const EdgeInsets.only(left: 8.0, bottom: 16.0),
+                          child: Text(
+                            "Settings",
+                            style: GoogleFonts.montserrat(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                        
+                        // Settings Options
+                        _buildSettingItem(
+                          Icons.person_outline, 
+                          "Edit Profile", 
+                          const Profilesettings(),
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF7D3C98), Color(0xFF6C3483)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                        ),
+                        
+                        _buildSettingItem(
+                          Icons.lock_outline, 
+                          "Privacy & Security", 
+                          const Security(),
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF3498DB), Color(0xFF2980B9)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                        ),
+                        
+                        _buildSettingItem(
+                          Icons.feedback_outlined, 
+                          "Complaint & Feedback", 
+                          const Complaint(),
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF16A085), Color(0xFF1ABC9C)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                        ),
+                        
+                        _buildSettingItem(
+                          Icons.shopping_bag_outlined, 
+                          "My Orders", 
+                          const OrdersPage(),
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFFE67E22), Color(0xFFD35400)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                        ),
+                        
+                        const SizedBox(height: 24),
+                        
+                        // Logout Button
+                        Center(
+                          child: SizedBox(
+                            width: MediaQuery.of(context).size.width * 0.8,
+                            child: AnimeButton(
+                              label: "Log Out",
+                              isOutlined: true, 
+                              icon: Icons.logout,
+                              onPressed: () {
+                                Navigator.pushReplacement(
+                                  context, 
+                                  MaterialPageRoute(builder: (context) => const Login())
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+        ],
       ),
     );
   }
 
-  Widget _buildSettingItem(IconData icon, String title, Widget page, {bool isLogout = false}) {
+  Widget _buildProfileCard() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AnimeTheme.brightPurple.withOpacity(0.7),
+            AnimeTheme.accentPink.withOpacity(0.7),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.3),
+            blurRadius: 15,
+            spreadRadius: 5,
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          // Avatar
+          CircleAvatar(
+            radius: 60,
+            backgroundColor: Colors.white.withOpacity(0.2),
+            child: CircleAvatar(
+              radius: 55,
+              backgroundColor: AnimeTheme.primaryPurple,
+              child: Icon(
+                Icons.person,
+                size: 60, 
+                color: AnimeTheme.accentPink,
+              ),
+            ),
+          ),
+          
+          const SizedBox(height: 16),
+          
+          // Username
+          Text(
+            userName,
+            style: GoogleFonts.montserrat(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+          
+          const SizedBox(height: 8),
+          
+          // Email
+          Text(
+            userEmail,
+            style: GoogleFonts.poppins(
+              fontSize: 16,
+              color: Colors.white.withOpacity(0.8),
+            ),
+          ),
+          
+          const SizedBox(height: 16),
+          
+          // Edit Profile Button
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              icon: const Icon(Icons.edit, size: 18),
+              label: Text(
+                "Edit Profile",
+                style: GoogleFonts.poppins(fontSize: 14),
+              ),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const Profilesettings()),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white.withOpacity(0.2),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(30),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSettingItem(IconData icon, String title, Widget page, {required Gradient gradient}) {
     return GestureDetector(
       onTap: () {
         Navigator.push(context, MaterialPageRoute(builder: (context) => page));
       },
       child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 8),
-        padding: const EdgeInsets.all(16),
+        margin: const EdgeInsets.only(bottom: 16),
         decoration: BoxDecoration(
-          color: Colors.grey[900],
-          borderRadius: BorderRadius.circular(12),
+          gradient: gradient,
+          borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.orange.withOpacity(0.2),
-              blurRadius: 6,
+              color: Colors.black.withOpacity(0.2),
+              blurRadius: 8,
               offset: const Offset(0, 3),
             ),
           ],
         ),
-        child: Row(
-          children: [
-            Icon(icon, color: isLogout ? Colors.redAccent : Colors.white, size: 24),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Text(
-                title,
-                style: TextStyle(
-                  color: isLogout ? Colors.redAccent : Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
+        child: ListTile(
+          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+          leading: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              shape: BoxShape.circle,
             ),
-            const Icon(Icons.arrow_forward_ios, color: Colors.white70, size: 18),
-          ],
+            child: Icon(icon, color: Colors.white, size: 24),
+          ),
+          title: Text(
+            title,
+            style: GoogleFonts.poppins(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          trailing: const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 16),
         ),
       ),
     );

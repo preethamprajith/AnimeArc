@@ -3,6 +3,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:user/screens/animedetails.dart';
 import 'package:user/screens/mangadetails.dart';
 import 'package:user/screens/search_screen.dart';
+import 'package:user/main.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class Userhome extends StatefulWidget {
   const Userhome({super.key});
@@ -82,17 +84,19 @@ class _UserhomeState extends State<Userhome> with SingleTickerProviderStateMixin
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        backgroundColor: Colors.black,
-        title: const Text('Animearc', 
-          style: TextStyle(color: Colors.orange, fontSize: 24, fontWeight: FontWeight.bold)
-        ),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: _buildAppTitle(),
         centerTitle: true,
         actions: [
-          IconButton(icon: const Icon(Icons.notifications, color: Colors.orange), onPressed: () {}),
           IconButton(
-            icon: const Icon(Icons.search, color: Colors.orange),
+            icon: const Icon(Icons.notifications_outlined, color: AnimeTheme.accentPink),
+            onPressed: () {}
+          ),
+          IconButton(
+            icon: const Icon(Icons.search, color: AnimeTheme.accentPink),
             onPressed: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => const SearchScreen()),
@@ -101,9 +105,18 @@ class _UserhomeState extends State<Userhome> with SingleTickerProviderStateMixin
         ],
         bottom: TabBar(
           controller: _tabController,
-          indicatorColor: Colors.orange,
-          labelColor: Colors.orange,
+          indicatorColor: AnimeTheme.accentPink,
+          labelColor: AnimeTheme.accentPink,
           unselectedLabelColor: Colors.grey,
+          labelStyle: GoogleFonts.montserrat(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1,
+          ),
+          unselectedLabelStyle: GoogleFonts.montserrat(
+            fontSize: 14,
+            letterSpacing: 1,
+          ),
           tabs: const [
             Tab(text: "ANIME"),
             Tab(text: "MANGA"),
@@ -120,30 +133,67 @@ class _UserhomeState extends State<Userhome> with SingleTickerProviderStateMixin
     );
   }
 
+  Widget _buildAppTitle() {
+    return RichText(
+      text: TextSpan(
+        children: [
+          TextSpan(
+            text: "anime",
+            style: GoogleFonts.montserrat(
+              color: Colors.white,
+              fontSize: 24,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 1.0,
+            ),
+          ),
+          TextSpan(
+            text: "Hub",
+            style: GoogleFonts.montserrat(
+              color: AnimeTheme.accentPink,
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.0,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildAnimeContent() {
     return isLoading
-        ? const Center(child: CircularProgressIndicator(color: Colors.orange))
-        : SingleChildScrollView(
-            padding: const EdgeInsets.all(12.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: animeByGenre.entries.map((entry) {
-                return _buildGenreSection(entry.key, entry.value, isAnime: true);
-              }).toList(),
+        ? Center(child: CircularProgressIndicator(color: AnimeTheme.accentPink))
+        : Container(
+            decoration: const BoxDecoration(
+              color: Colors.transparent,
+            ),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.only(top: 130, left: 12, right: 12, bottom: 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: animeByGenre.entries.map((entry) {
+                  return _buildGenreSection(entry.key, entry.value, isAnime: true);
+                }).toList(),
+              ),
             ),
           );
   }
 
   Widget _buildMangaContent() {
     return isLoading
-        ? const Center(child: CircularProgressIndicator(color: Colors.orange))
-        : SingleChildScrollView(
-            padding: const EdgeInsets.all(12.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: mangaByGenre.entries.map((entry) {
-                return _buildGenreSection(entry.key, entry.value, isAnime: false);
-              }).toList(),
+        ? Center(child: CircularProgressIndicator(color: AnimeTheme.accentPink))
+        : Container(
+            decoration: const BoxDecoration(
+              color: Colors.transparent,
+            ),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.only(top: 130, left: 12, right: 12, bottom: 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: mangaByGenre.entries.map((entry) {
+                  return _buildGenreSection(entry.key, entry.value, isAnime: false);
+                }).toList(),
+              ),
             ),
           );
   }
@@ -153,12 +203,18 @@ class _UserhomeState extends State<Userhome> with SingleTickerProviderStateMixin
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: 16),
-        Text(genreName, 
-          style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)
+        Text(
+          genreName,
+          style: GoogleFonts.montserrat(
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 0.5,
+          ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 12),
         SizedBox(
-          height: 180,
+          height: 220,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             itemCount: contentList.length,
@@ -181,36 +237,44 @@ class _UserhomeState extends State<Userhome> with SingleTickerProviderStateMixin
       ),
       behavior: HitTestBehavior.opaque,
       child: Padding(
-        padding: const EdgeInsets.only(right: 8.0),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(12),
-          child: Stack(
-            children: [
-              Image.network(
-                anime['anime_poster'] ?? "https://via.placeholder.com/150",
-                width: 130,
-                height: 180,
-                fit: BoxFit.cover,
+        padding: const EdgeInsets.only(right: 12.0),
+        child: Container(
+          width: 150,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(15),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.4),
+                blurRadius: 10,
+                offset: const Offset(0, 5),
               ),
-              Positioned(
-                bottom: 5,
-                left: 5,
-                right: 5,
-                child: Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.7),
-                    borderRadius: BorderRadius.circular(6)
-                  ),
-                  child: Text(
-                    anime['anime_name'],
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Image
+              ClipRRect(
+                borderRadius: BorderRadius.circular(15),
+                child: Image.network(
+                  anime['anime_poster'] ?? "https://via.placeholder.com/150",
+                  width: 150,
+                  height: 180,
+                  fit: BoxFit.cover,
+                ),
+              ),
+              const SizedBox(height: 8),
+              // Title
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 6),
+                child: Text(
+                  anime['anime_name'] ?? "Unknown",
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.poppins(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ),

@@ -66,7 +66,7 @@ class _ManagebookingState extends State<Managebooking> {
       appBar: AppBar(
         title: const Text('Manage Bookings',
             style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: const Color.fromARGB(255, 214, 139, 28),
+        backgroundColor: const Color.fromARGB(255, 125, 24, 202),
       ),
       body: FutureBuilder<List<Map<String, dynamic>>>(
         future: fetchBookings(),

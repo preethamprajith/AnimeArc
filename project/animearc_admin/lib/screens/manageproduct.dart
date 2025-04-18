@@ -149,7 +149,7 @@ class _ManageProductState extends State<ManageProduct> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Manage Products"),
-        backgroundColor: const Color.fromARGB(255, 214, 147, 38),
+        backgroundColor: const Color.fromARGB(255, 140, 25, 222),
         centerTitle: true,
       ),
       body: SingleChildScrollView(
