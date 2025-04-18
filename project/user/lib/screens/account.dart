@@ -3,7 +3,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:user/screens/complaint.dart';
 import 'package:user/screens/login.dart';
 import 'package:user/screens/my_order.dart';
-import 'package:user/screens/order_details.dart';
 import 'package:user/screens/privacy.dart';
 import 'package:user/screens/profilesettings.dart';
 

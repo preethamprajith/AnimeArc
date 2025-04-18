@@ -1,29 +1,8 @@
 import 'package:animearc_admin/screens/dashboard.dart';
 import 'package:flutter/material.dart';
 
-void main() {
-  runApp(const AdminLoginApp());
-}
-
-class AdminLoginApp extends StatelessWidget {
-  const AdminLoginApp({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Admin Login',
-      theme: ThemeData(
-        primaryColor: const Color(0xFFFFA500), // Orange theme
-        fontFamily: 'Roboto',
-      ),
-      home: const AdminLoginPage(),
-    );
-  }
-}
-
 class AdminLoginPage extends StatelessWidget {
-  const AdminLoginPage({Key? key}) : super(key: key);
+  const AdminLoginPage({super.key});
 
   @override
   Widget build(BuildContext context) {

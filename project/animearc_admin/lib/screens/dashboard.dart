@@ -1,6 +1,4 @@
-import 'package:animearc_admin/screens/manageanimefile.dart';
 import 'package:animearc_admin/screens/managemanga.dart';
-import 'package:animearc_admin/screens/managemangafile.dart';
 import 'package:flutter/material.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:animearc_admin/components/appbar.dart';
@@ -10,7 +8,6 @@ import 'package:animearc_admin/screens/managebooking.dart';
 import 'package:animearc_admin/screens/managecategory.dart';
 import 'package:animearc_admin/screens/managegenre.dart';
 import 'package:animearc_admin/screens/manageproduct.dart';
-import 'package:animearc_admin/screens/managestock.dart';
 import 'package:animearc_admin/screens/viewproduct.dart';
 import 'package:animearc_admin/screens/views&complaints.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -59,9 +56,7 @@ class _AdminHomeState extends State<AdminHome> {
     ManageGenre(),
     ManageProduct(),
     ViewProduct(),
-    Managestock(),
     Managebooking(),
-    UploadAnimeVideo(),
     ManageManga(),
     
     ComplaintPage(),

@@ -2,35 +2,45 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:video_player/video_player.dart';
+import 'package:chewie/chewie.dart';
 
 class UploadAnimeVideo extends StatefulWidget {
-  const UploadAnimeVideo({super.key});
+  final int animeId;
+  const UploadAnimeVideo({super.key, required this.animeId});
 
   @override
   State<UploadAnimeVideo> createState() => _UploadAnimeVideoState();
 }
 
-class _UploadAnimeVideoState extends State<UploadAnimeVideo> {
+class _UploadAnimeVideoState extends State<UploadAnimeVideo> with SingleTickerProviderStateMixin {
   final TextEditingController _episodeController = TextEditingController();
   final TextEditingController _seasonController = TextEditingController();
+  List<Map<String, dynamic>> animeFiles = [];
+  late TabController _tabController;
+  List<int> seasons = [];
 
   PlatformFile? pickedVideo;
-  String? selectedAnimeId;
   String? selectedGenreId;
-  List<Map<String, dynamic>> animeList = [];
   List<Map<String, dynamic>> genreList = [];
-  List<Map<String, dynamic>> filteredAnimeList = [];
 
   @override
   void initState() {
     super.initState();
     fetchGenres();
-    fetchAnimeList();
+    fetchAnimeFiles();
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 
   Future<void> fetchGenres() async {
     try {
-      final response = await Supabase.instance.client.from('tbl_genre').select();
+      final response =
+          await Supabase.instance.client.from('tbl_genre').select();
       setState(() {
         genreList = List<Map<String, dynamic>>.from(response);
       });
@@ -39,27 +49,29 @@ class _UploadAnimeVideoState extends State<UploadAnimeVideo> {
     }
   }
 
-  Future<void> fetchAnimeList() async {
+  Future<void> fetchAnimeFiles() async {
     try {
       final response = await Supabase.instance.client
-          .from('tbl_anime')
-          .select('anime_id, anime_name, genre_id');
+          .from('tbl_animefile')
+          .select()
+          .eq('anime_id', widget.animeId)
+          .order('animefile_season, animefile_episode');
+      
       setState(() {
-        animeList = List<Map<String, dynamic>>.from(response);
-        applyGenreFilter();
+        animeFiles = List<Map<String, dynamic>>.from(response);
+        // Extract unique seasons
+        seasons = animeFiles
+            .map((file) => int.parse(file['animefile_season'].toString()))
+            .toSet()
+            .toList()
+          ..sort();
+        
+        // Initialize TabController after getting seasons
+        _tabController = TabController(length: seasons.isEmpty ? 1 : seasons.length, vsync: this);
       });
     } catch (e) {
-      showSnackbar("Error fetching anime list", Colors.red);
+      showSnackbar("Error fetching anime files", Colors.red);
     }
-  }
-
-  void applyGenreFilter() {
-    setState(() {
-      filteredAnimeList = selectedGenreId == null
-          ? animeList
-          : animeList.where((anime) => anime['genre_id'].toString() == selectedGenreId).toList();
-      selectedAnimeId = null; // Reset selection after filtering
-    });
   }
 
   Future<void> pickVideo() async {
@@ -86,11 +98,13 @@ class _UploadAnimeVideoState extends State<UploadAnimeVideo> {
       final fileName = "$timestamp.$fileExtension";
 
       await Supabase.instance.client.storage.from(bucketName).uploadBinary(
-        fileName,
-        pickedVideo!.bytes!,
-      );
+            fileName,
+            pickedVideo!.bytes!,
+          );
 
-      return Supabase.instance.client.storage.from(bucketName).getPublicUrl(fileName);
+      return Supabase.instance.client.storage
+          .from(bucketName)
+          .getPublicUrl(fileName);
     } catch (e) {
       showSnackbar("Error uploading video", Colors.red);
       return null;
@@ -98,7 +112,7 @@ class _UploadAnimeVideoState extends State<UploadAnimeVideo> {
   }
 
   Future<void> insertAnimeVideo() async {
-    if (pickedVideo == null || selectedAnimeId == null) {
+    if (pickedVideo == null) {
       showSnackbar("Please select a video file and an anime!", Colors.red);
       return;
     }
@@ -112,16 +126,18 @@ class _UploadAnimeVideoState extends State<UploadAnimeVideo> {
 
       await Supabase.instance.client.from("tbl_animefile").insert({
         'animefile_file': videoUrl,
-        'animefile_episode': _episodeController.text.isNotEmpty ? _episodeController.text : "1",
-        'animefile_season': _seasonController.text.isNotEmpty ? _seasonController.text : "1",
-        'anime_id': int.parse(selectedAnimeId!),
+        'animefile_episode':
+            _episodeController.text.isNotEmpty ? _episodeController.text : "1",
+        'animefile_season':
+            _seasonController.text.isNotEmpty ? _seasonController.text : "1",
+        'anime_id': widget.animeId,
       });
 
       // Reset Fields
       _episodeController.clear();
       _seasonController.clear();
-      selectedAnimeId = null;
       pickedVideo = null;
+      await fetchAnimeFiles();
       setState(() {});
 
       showSuccessDialog();
@@ -152,78 +168,531 @@ class _UploadAnimeVideoState extends State<UploadAnimeVideo> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            "Upload Anime Video",
-            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.blue),
+  void _showUploadDialog() {
+    // Reset form state
+    _episodeController.clear();
+    _seasonController.clear();
+    pickedVideo = null;
+    selectedGenreId = null;
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          child: Container(
+            width: MediaQuery.of(context).size.width * 0.4,
+            decoration: BoxDecoration(
+              color: const Color.fromARGB(255, 43, 43, 43),
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.3),
+                  blurRadius: 15,
+                  spreadRadius: 5,
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Header
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Color.fromARGB(255, 226, 116, 7),
+                        Color.fromARGB(255, 196, 128, 32)
+                      ],
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                    ),
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(16),
+                      topRight: Radius.circular(16),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        "Upload Anime Episode",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close, color: Colors.white),
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
+                    ],
+                  ),
+                ),
+                // Content
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Episode Input
+                      _buildInputLabel("Episode Number"),
+                      const SizedBox(height: 8),
+                      _buildStyledInput(
+                        controller: _episodeController,
+                        hintText: "Enter episode number",
+                        icon: Icons.format_list_numbered,
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Season Input
+                      _buildInputLabel("Season Number"),
+                      const SizedBox(height: 8),
+                      _buildStyledInput(
+                        controller: _seasonController,
+                        hintText: "Enter season number",
+                        icon: Icons.video_library,
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Genre Dropdown
+                      _buildInputLabel("Genre"),
+                      const SizedBox(height: 8),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.grey[800],
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: Colors.grey[600]!,
+                            width: 1,
+                          ),
+                        ),
+                        child: DropdownButtonFormField<String>(
+                          value: selectedGenreId,
+                          decoration: const InputDecoration(
+                            prefixIcon: Icon(
+                              Icons.category,
+                              color: Color.fromARGB(255, 226, 116, 7),
+                            ),
+                            border: InputBorder.none,
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
+                          ),
+                          dropdownColor: Colors.grey[800],
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                          ),
+                          items: genreList.map((genre) {
+                            return DropdownMenuItem<String>(
+                              value: genre['genre_id'].toString(),
+                              child: Text(genre['genre_name']),
+                            );
+                          }).toList(),
+                          onChanged: (value) {
+                            setState(() {
+                              selectedGenreId = value;
+                            });
+                          },
+                          hint: const Text(
+                            "Select genre",
+                            style: TextStyle(color: Colors.grey),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+
+                      // File Upload Section
+                      _buildInputLabel("Video File"),
+                      const SizedBox(height: 8),
+                      InkWell(
+                        onTap: pickVideo,
+                        child: Container(
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[800],
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: const Color.fromARGB(255, 226, 116, 7),
+                              width: 1,
+                              style: BorderStyle.solid,
+                            ),
+                          ),
+                          child: Column(
+                            children: [
+                              Icon(
+                                pickedVideo != null
+                                    ? Icons.check_circle
+                                    : Icons.cloud_upload,
+                                size: 48,
+                                color: const Color.fromARGB(255, 226, 116, 7),
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                pickedVideo != null
+                                    ? pickedVideo!.name
+                                    : "Click to upload video file",
+                                style: TextStyle(
+                                  color: Colors.grey[300],
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // Actions
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[900],
+                    borderRadius: const BorderRadius.only(
+                      bottomLeft: Radius.circular(16),
+                      bottomRight: Radius.circular(16),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        child: const Text(
+                          "Cancel",
+                          style: TextStyle(
+                            color: Colors.grey,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      ElevatedButton(
+                        onPressed: () {
+                          insertAnimeVideo();
+                          Navigator.of(context).pop();
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color.fromARGB(255, 226, 116, 7),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 12,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        child: const Text(
+                          "Upload",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 10),
+        );
+      },
+    );
+  }
 
-          buildInputField("Episode", _episodeController),
-          buildInputField("Season", _seasonController),
+  Widget _buildInputLabel(String label) {
+    return Text(
+      label,
+      style: const TextStyle(
+        color: Colors.white,
+        fontSize: 16,
+        fontWeight: FontWeight.w500,
+      ),
+    );
+  }
 
-          const SizedBox(height: 10),
-
-          buildDropdown(
-            "Select Genre",
-            selectedGenreId,
-            genreList.map((genre) => DropdownMenuItem<String>(
-              value: genre['genre_id'].toString(),
-              child: Text(genre['genre_name']),
-            )).toList(),
-            (value) {
-              setState(() {
-                selectedGenreId = value;
-                applyGenreFilter();
-              });
-            },
+  Widget _buildStyledInput({
+    required TextEditingController controller,
+    required String hintText,
+    required IconData icon,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.grey[800],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Colors.grey[600]!,
+          width: 1,
+        ),
+      ),
+      child: TextField(
+        controller: controller,
+        style: const TextStyle(color: Colors.white),
+        decoration: InputDecoration(
+          hintText: hintText,
+          hintStyle: TextStyle(color: Colors.grey[500]),
+          prefixIcon: Icon(
+            icon,
+            color: const Color.fromARGB(255, 226, 116, 7),
           ),
-
-          const SizedBox(height: 10),
-
-          buildDropdown(
-            "Select Anime",
-            selectedAnimeId,
-            filteredAnimeList.map((anime) => DropdownMenuItem<String>(
-              value: anime['anime_id'].toString(),
-              child: Text(anime['anime_name']),
-            )).toList(),
-            (value) {
-              setState(() {
-                selectedAnimeId = value;
-              });
-            },
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 12,
           ),
+        ),
+      ),
+    );
+  }
 
-          const SizedBox(height: 10),
+  List<Map<String, dynamic>> getEpisodesForSeason(int season) {
+    return animeFiles
+        .where((file) => int.parse(file['animefile_season'].toString()) == season)
+        .toList()
+      ..sort((a, b) => int.parse(a['animefile_episode'].toString())
+          .compareTo(int.parse(b['animefile_episode'].toString())));
+  }
 
-          buildFilePicker(),
+  Widget _buildSeasonContent(int season) {
+    final seasonEpisodes = getEpisodesForSeason(season);
 
-          const SizedBox(height: 20),
+    if (seasonEpisodes.isEmpty) {
+      return const Center(
+        child: Text(
+          "No episodes in this season",
+          style: TextStyle(
+            fontSize: 18,
+            color: Colors.grey,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      );
+    }
 
-          Center(
-            child: ElevatedButton(
-              onPressed: insertAnimeVideo,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
-                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 32),
-                shape: RoundedRectangleBorder(
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: seasonEpisodes.length,
+      itemBuilder: (context, index) {
+        final episode = seasonEpisodes[index];
+        return Card(
+          margin: const EdgeInsets.only(bottom: 12),
+          elevation: 4,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              gradient: LinearGradient(
+                colors: [
+                  Colors.white,
+                  Colors.orange.shade50,
+                ],
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+              ),
+            ),
+            child: ListTile(
+              contentPadding: const EdgeInsets.all(16),
+              leading: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
+                child: const Icon(
+                  Icons.video_library,
+                  color: Color.fromARGB(255, 196, 128, 32),
+                  size: 32,
+                ),
               ),
-              child: const Text(
-                "Upload",
-                style: TextStyle(fontSize: 16, color: Colors.white),
+              title: Text(
+                'Episode ${episode['animefile_episode']}',
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Color.fromARGB(255, 43, 43, 43),
+                ),
+              ),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        builder: (context) => VideoPlayerDialog(
+                          videoUrl: episode['animefile_file'],
+                          episodeNumber: episode['animefile_episode'].toString(),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.play_circle_outline, color: Colors.white),
+                    label: const Text(
+                      'Play',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color.fromARGB(255, 196, 128, 32),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    icon: const Icon(Icons.delete),
+                    color: Colors.red,
+                    onPressed: () => _deleteAnimeFile(episode['animefile_id']),
+                  ),
+                ],
               ),
             ),
           ),
-        ],
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Color.fromARGB(255, 222, 149, 54),
+              Color.fromARGB(255, 196, 128, 32)
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(
+                          Icons.arrow_back,
+                          color: Colors.white,
+                          size: 28,
+                        ),
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                        },
+                      ),
+                      const SizedBox(width: 16),
+                      const Text(
+                        'Manage Anime Episodes',
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                  ElevatedButton.icon(
+                    onPressed: _showUploadDialog,
+                    icon: const Icon(Icons.upload, color: Colors.black),
+                    label: const Text(
+                      "Upload Episode",
+                      style: TextStyle(
+                        color: Colors.black,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white.withOpacity(0.9),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 12,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (seasons.isNotEmpty)
+              Container(
+                color: Colors.white.withOpacity(0.1),
+                child: TabBar(
+                  controller: _tabController,
+                  tabs: seasons
+                      .map((season) => Tab(
+                            child: Text(
+                              'Season $season',
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ))
+                      .toList(),
+                  isScrollable: true,
+                  labelColor: Colors.white,
+                  unselectedLabelColor: Colors.white70,
+                  indicatorColor: Colors.white,
+                  indicatorWeight: 3,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                ),
+              ),
+            Expanded(
+              child: Container(
+                margin: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.9),
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black26,
+                      blurRadius: 10,
+                      spreadRadius: 2,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: seasons.isEmpty
+                    ? const Center(
+                        child: Text(
+                          "No episodes uploaded yet",
+                          style: TextStyle(
+                            fontSize: 18,
+                            color: Colors.grey,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      )
+                    : TabBarView(
+                        controller: _tabController,
+                        children: seasons.map((season) {
+                          return SingleChildScrollView(
+                            padding: const EdgeInsets.all(16),
+                            child: _buildSeasonContent(season),
+                          );
+                        }).toList(),
+                      ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -240,7 +709,8 @@ class _UploadAnimeVideoState extends State<UploadAnimeVideo> {
     );
   }
 
-  Widget buildDropdown(String label, String? value, List<DropdownMenuItem<String>> items, ValueChanged<String?> onChanged) {
+  Widget buildDropdown(String label, String? value,
+      List<DropdownMenuItem<String>> items, ValueChanged<String?> onChanged) {
     return DropdownButtonFormField<String>(
       value: value,
       decoration: InputDecoration(
@@ -255,9 +725,163 @@ class _UploadAnimeVideoState extends State<UploadAnimeVideo> {
   }
 
   Widget buildFilePicker() {
-    return ListTile(
-      title: Text(pickedVideo != null ? pickedVideo!.name : "Upload Video File"),
-      trailing: IconButton(icon: const Icon(Icons.video_file, color: Colors.blue), onPressed: pickVideo),
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: ListTile(
+        title: Text(
+          pickedVideo != null ? pickedVideo!.name : "Select Video File",
+          style: TextStyle(
+            color: pickedVideo != null ? Colors.black : Colors.grey,
+          ),
+        ),
+        trailing: IconButton(
+          icon: const Icon(Icons.upload_file, color: Colors.blue),
+          onPressed: pickVideo,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _deleteAnimeFile(int fileId) async {
+    try {
+      await Supabase.instance.client
+          .from('tbl_animefile')
+          .delete()
+          .eq('animefile_id', fileId);
+      
+      await fetchAnimeFiles();
+      showSnackbar("Episode deleted successfully", Colors.green);
+    } catch (e) {
+      showSnackbar("Error deleting episode: ${e.toString()}", Colors.red);
+    }
+  }
+}
+
+class VideoPlayerDialog extends StatefulWidget {
+  final String videoUrl;
+  final String episodeNumber;
+
+  const VideoPlayerDialog({
+    Key? key,
+    required this.videoUrl,
+    required this.episodeNumber,
+  }) : super(key: key);
+
+  @override
+  State<VideoPlayerDialog> createState() => _VideoPlayerDialogState();
+}
+
+class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
+  late VideoPlayerController _videoPlayerController;
+  ChewieController? _chewieController;
+  bool _isInitialized = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializePlayer();
+  }
+
+  Future<void> _initializePlayer() async {
+    _videoPlayerController = VideoPlayerController.network(widget.videoUrl);
+    
+    try {
+      await _videoPlayerController.initialize();
+      _chewieController = ChewieController(
+        videoPlayerController: _videoPlayerController,
+        autoPlay: true,
+        looping: false,
+        aspectRatio: _videoPlayerController.value.aspectRatio,
+        errorBuilder: (context, errorMessage) {
+          return Center(
+            child: Text(
+              'Error: $errorMessage',
+              style: const TextStyle(color: Colors.white),
+            ),
+          );
+        },
+      );
+      setState(() {
+        _isInitialized = true;
+      });
+    } catch (e) {
+      setState(() {
+        _isInitialized = false;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _videoPlayerController.dispose();
+    _chewieController?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: const Color.fromARGB(255, 43, 43, 43),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Container(
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.of(context).size.width * 0.8,
+          maxHeight: MediaQuery.of(context).size.height * 0.8,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Color.fromARGB(255, 226, 116, 7),
+                    Color.fromARGB(255, 196, 128, 32)
+                  ],
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                ),
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(16),
+                  topRight: Radius.circular(16),
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Episode ${widget.episodeNumber}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: _isInitialized
+                  ? Chewie(controller: _chewieController!)
+                  : const Center(
+                      child: CircularProgressIndicator(
+                        color: Color.fromARGB(255, 196, 128, 32),
+                      ),
+                    ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

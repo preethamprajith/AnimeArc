@@ -1,4 +1,3 @@
-//import 'package:animearc_admin/screens/dashboard.dart';
 import 'package:animearc_admin/screens/login.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -21,7 +20,7 @@ class MainApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return const MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: AdminLoginApp(),
+      home: AdminLoginPage(),
     );
   }
 }

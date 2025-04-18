@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'package:animearc_admin/screens/manageanimefile.dart';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -179,6 +180,9 @@ class _ManageAnimeState extends State<ManageAnime> {
               return Card(
                 margin: const EdgeInsets.symmetric(vertical: 8),
                 child: ListTile(
+                  onTap: () {
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => UploadAnimeVideo(animeId: anime['anime_id'],),));
+                  },
                   leading: anime['anime_poster'] != null
                       ? Image.network(anime['anime_poster'], width: 50, height: 50, fit: BoxFit.cover)
                       : const Icon(Icons.image_not_supported),

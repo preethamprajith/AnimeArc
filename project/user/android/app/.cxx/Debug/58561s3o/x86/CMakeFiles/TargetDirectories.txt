@@ -1,0 +1,2 @@
+C:/Projects/AnimeArc/project/user/android/app/.cxx/Debug/58561s3o/x86/CMakeFiles/edit_cache.dir
+C:/Projects/AnimeArc/project/user/android/app/.cxx/Debug/58561s3o/x86/CMakeFiles/rebuild_cache.dir

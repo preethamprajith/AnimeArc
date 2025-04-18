@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
@@ -111,7 +110,7 @@ class _ManageProductState extends State<ManageProduct> {
         'product_image': url,
       }).select('product_id').single(); // Get the newly inserted product's ID
 
-      if (response != null && response['product_id'] != null) {
+      if (response['product_id'] != null) {
         await Supabase.instance.client.from('tbl_stock').insert({
           'product_id': response['product_id'],
           'stock_qty': 0, // Default stock quantity
@@ -188,7 +187,7 @@ class _ManageProductState extends State<ManageProduct> {
                   }).toList(),
                   onChanged: (value) {
                     setState(() {
-                      _selectedCategory = value as String?;
+                      _selectedCategory = value;
                     });
                   },
                   decoration: InputDecoration(
@@ -208,7 +207,7 @@ class _ManageProductState extends State<ManageProduct> {
                   }).toList(),
                   onChanged: (value) {
                     setState(() {
-                      _selectedAnime = value as String?;
+                      _selectedAnime = value;
                     });
                   },
                   decoration: InputDecoration(

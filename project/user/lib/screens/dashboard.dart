@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:user/screens/account.dart';
-import 'package:user/screens/browse.dart';
 import 'package:user/screens/mylist.dart';
 import 'package:user/screens/store.dart';
 import 'package:user/screens/userhome.dart';
@@ -22,7 +21,6 @@ class _DashboardState extends State<Dashboard> {
     const Userhome(),
     const MyList(),
     const Store(),
-    const Browse(),
     const Account(),
   ];
 
@@ -62,11 +60,6 @@ class _DashboardState extends State<Dashboard> {
             icon: const Icon(Icons.store_outlined),
             activeIcon: const Icon(Icons.store),
             label: 'Store',
-          ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.explore_outlined),
-            activeIcon: const Icon(Icons.explore),
-            label: 'Browse',
           ),
           BottomNavigationBarItem(
             icon: const Icon(Icons.account_circle_outlined),

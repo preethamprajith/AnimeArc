@@ -209,31 +209,18 @@ class _ManageMangaState extends State<ManageManga> {
               return Card(
                 margin: const EdgeInsets.symmetric(vertical: 8),
                 child: ListTile(
+                  onTap:  () {
+                          Navigator.push(context, MaterialPageRoute(builder: (context)=> ManageVolume(mangaId: manga['manga_id'],)));
+                        },
                   leading: manga['manga_cover'] != null
                       ? Image.network(manga['manga_cover'], width: 50, height: 50, fit: BoxFit.cover)
                       : const Icon(Icons.menu_book),
                   title: Text(manga['manga_title'] ?? 'No Title'),
                   subtitle: Text("Author: ${manga['manga_author']}\nGenre: ${manga['tbl_genre']?['genre_name'] ?? ''}"),
                   isThreeLine: true,
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.delete, color: Colors.red),
-                        onPressed: () => deleteManga(manga['manga_id']),
-                      ),
-                      ElevatedButton(
-                        onPressed: () {
-                          Navigator.push(context, MaterialPageRoute(builder: (context)=> ManageVolume(mangaId: manga['manga_id'],)));
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.deepPurple,
-                          minimumSize: const Size(90, 36),
-                          padding: EdgeInsets.zero,
-                        ),
-                        child: const Text("View Volume", style: TextStyle(fontSize: 12)),
-                      ),
-                    ],
+                  trailing: IconButton(
+                    icon: const Icon(Icons.delete, color: Colors.red),
+                    onPressed: () => deleteManga(manga['manga_id']),
                   ),
                 ),
               );
