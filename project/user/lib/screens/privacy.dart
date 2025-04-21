@@ -86,7 +86,7 @@ class _SecurityState extends State<Security> {
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
-        backgroundColor: Colors.orange,
+        backgroundColor: Color(0xFF4A1A70),
         title: const Text("Change Password", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         centerTitle: true,
         elevation: 4,
@@ -117,7 +117,7 @@ class _SecurityState extends State<Security> {
             ElevatedButton(
               onPressed: isLoading ? null : changePassword,
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange,
+                backgroundColor: Color(0xFF4A1A70),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -145,7 +145,7 @@ class _SecurityState extends State<Security> {
         borderRadius: BorderRadius.circular(10),
         boxShadow: [
           BoxShadow(
-            color: Colors.orange.withOpacity(0.2),
+            color: Color(0xFF4A1A70),
             blurRadius: 6,
             offset: const Offset(0, 3),
           ),
@@ -162,11 +162,11 @@ class _SecurityState extends State<Security> {
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
-            borderSide: BorderSide(color: Colors.orange.withOpacity(0.6)),
+            borderSide: BorderSide(color: Color(0xFF4A1A70),),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
-            borderSide: const BorderSide(color: Colors.orange, width: 2),
+            borderSide: const BorderSide(color: Color(0xFF4A1A70), width: 2),
           ),
           suffixIcon: IconButton(
             icon: Icon(obscureText ? Icons.visibility_off : Icons.visibility, color: Colors.white),

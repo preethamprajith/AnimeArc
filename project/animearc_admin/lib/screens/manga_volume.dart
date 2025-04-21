@@ -173,8 +173,8 @@ class _ManageVolumeState extends State<ManageVolume> {
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             colors: [
-              Color.fromARGB(255, 222, 149, 54),
-              Color.fromARGB(255, 196, 128, 32)
+              const Color(0xFF5D1E9E),
+              const Color(0xFF5D1E9E),
             ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
@@ -307,6 +307,7 @@ class _ManageVolumeState extends State<ManageVolume> {
                                   style: const TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
+                                    color: Color.fromARGB(255, 0, 0, 0),
                                   ),
                                 ),
                                 subtitle: Text(
@@ -338,12 +339,7 @@ class _ManageVolumeState extends State<ManageVolume> {
                                         style: TextStyle(color: Colors.white),
                                       ),
                                       style: ElevatedButton.styleFrom(
-                                        backgroundColor: const Color.fromARGB(
-                                          255,
-                                          196,
-                                          128,
-                                          32,
-                                        ),
+                                        backgroundColor: const Color.fromARGB(255, 158, 58, 225),
                                         shape: RoundedRectangleBorder(
                                           borderRadius: BorderRadius.circular(8),
                                         ),
@@ -408,8 +404,8 @@ class _ManageVolumeState extends State<ManageVolume> {
                     decoration: const BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
-                          Color.fromARGB(255, 226, 116, 7),
-                          Color.fromARGB(255, 196, 128, 32)
+                          Color.fromARGB(255, 128, 20, 216),
+                          Color.fromARGB(255, 132, 72, 211)
                         ],
                         begin: Alignment.centerLeft,
                         end: Alignment.centerRight,
@@ -489,7 +485,7 @@ class _ManageVolumeState extends State<ManageVolume> {
                               children: [
                                 Icon(
                                   Icons.calendar_today,
-                                  color: const Color.fromARGB(255, 226, 116, 7),
+                                  color: const Color.fromARGB(255, 84, 20, 152),
                                 ),
                                 const SizedBox(width: 12),
                                 Text(
@@ -520,7 +516,7 @@ class _ManageVolumeState extends State<ManageVolume> {
                               color: Colors.grey[800],
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
-                                color: const Color.fromARGB(255, 226, 116, 7),
+                                color: const Color.fromARGB(255, 147, 47, 213),
                                 width: 1,
                                 style: BorderStyle.solid,
                               ),
@@ -549,7 +545,7 @@ class _ManageVolumeState extends State<ManageVolume> {
                                     Icons.cloud_upload,
                                     size: 48,
                                     color:
-                                        const Color.fromARGB(255, 226, 116, 7),
+                                        const Color.fromARGB(255, 123, 23, 190),
                                   ),
                                   const SizedBox(height: 12),
                                   Text(
@@ -596,7 +592,7 @@ class _ManageVolumeState extends State<ManageVolume> {
                           onPressed: _isLoading ? null : () => _saveChapter(),
                           style: ElevatedButton.styleFrom(
                             backgroundColor:
-                                const Color.fromARGB(255, 226, 116, 7),
+                                const Color.fromARGB(255, 123, 31, 209),
                             padding: const EdgeInsets.symmetric(
                               horizontal: 24,
                               vertical: 12,
@@ -661,7 +657,7 @@ class _ManageVolumeState extends State<ManageVolume> {
         hintStyle: TextStyle(color: Colors.grey[500]),
         prefixIcon: Icon(
           icon,
-          color: const Color.fromARGB(255, 226, 116, 7),
+          color: const Color.fromARGB(255, 140, 40, 212),
         ),
         filled: true,
         fillColor: Colors.grey[800],
@@ -676,7 +672,7 @@ class _ManageVolumeState extends State<ManageVolume> {
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(
-            color: Color.fromARGB(255, 226, 116, 7),
+            color: Color.fromARGB(255, 98, 24, 155),
           ),
         ),
         errorBorder: OutlineInputBorder(

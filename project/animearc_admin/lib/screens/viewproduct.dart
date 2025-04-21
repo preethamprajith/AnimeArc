@@ -34,33 +34,36 @@ class _ViewProductState extends State<ViewProduct> {
     }
   }
 
-   Future<void> _deleteProduct(int productId) async {
-  try {
-    final supabase = Supabase.instance.client;
+  Future<void> _deleteProduct(int productId) async {
+    try {
+      final supabase = Supabase.instance.client;
 
-    // Delete related stock entries first
-    await supabase.from('tbl_stock').delete().eq('product_id', productId);
+      // First delete from tbl_cart
+      await supabase.from('tbl_cart').delete().eq('product_id', productId);
 
-    // Now delete the product
-    await supabase.from('tbl_product').delete().eq('product_id', productId);
+      // Then delete from tbl_stock
+      await supabase.from('tbl_stock').delete().eq('product_id', productId);
 
-    _fetchProducts(); // Refresh after delete
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("Product deleted successfully!"),
-        backgroundColor: Colors.red,
-      ),
-    );
-  } catch (e) {
-    print("Error deleting product: $e");
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text("Error deleting product: $e"),
-        backgroundColor: Colors.red,
-      ),
-    );
+      // Finally delete the product
+      await supabase.from('tbl_product').delete().eq('product_id', productId);
+
+      _fetchProducts(); // Refresh after delete
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Product deleted successfully!"),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } catch (e) {
+      print("Error deleting product: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Error deleting product: $e"),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
-}
 
   @override
   Widget build(BuildContext context) {
@@ -80,7 +83,7 @@ class _ViewProductState extends State<ViewProduct> {
                           crossAxisCount: 4,
                           crossAxisSpacing: 10,
                           mainAxisSpacing: 10,
-                          childAspectRatio: 1,
+                          childAspectRatio: 0.9,
                         ),
                         itemCount: products.length,
                         itemBuilder: (context, index) {

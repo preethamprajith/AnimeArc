@@ -145,7 +145,7 @@ class CartState extends State<Cart> {
                 child: isLoading
                   ? Center(
                       child: CircularProgressIndicator(
-                        color: Colors.orange,
+                        color:Color(0xFF4A1A70),
                       )
                     )
                   : cartItems.isEmpty
@@ -225,7 +225,7 @@ class CartState extends State<Cart> {
             child: Icon(
               Icons.shopping_cart_outlined,
               size: 80,
-              color: Colors.orange.withOpacity(0.7),
+              color: Color(0xFF4A1A70),
             ),
           ),
           SizedBox(height: 24),
@@ -253,14 +253,14 @@ class CartState extends State<Cart> {
               padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [Colors.orangeAccent, Colors.orange.shade700],
+                  colors: [Color(0xFF4A1A70), Color(0xFF4A1A70),],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
                 borderRadius: BorderRadius.circular(30),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.orange.withOpacity(0.3),
+                    color: Color(0xFF4A1A70),
                     blurRadius: 8,
                     offset: Offset(0, 2),
                   ),
@@ -379,7 +379,7 @@ class CartState extends State<Cart> {
                         Text(
                           "₹${item['price']}",
                           style: TextStyle(
-                            color: Colors.orange,
+                            color:Color(0xFF4A1A70),
                             fontSize: 18,
                             fontWeight: FontWeight.w600,
                           ),
@@ -499,7 +499,7 @@ class CartState extends State<Cart> {
                 Text(
                   "₹${getTotalPrice().toStringAsFixed(2)}",
                   style: TextStyle(
-                    color: Colors.orange,
+                    color: Color(0xFF4A1A70),
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
                   ),
@@ -514,14 +514,14 @@ class CartState extends State<Cart> {
                 padding: EdgeInsets.symmetric(vertical: 16),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Colors.orangeAccent, Colors.orange.shade700],
+                    colors: [Color(0xFF4A1A70), Color(0xFF4A1A70),],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.orange.withOpacity(0.3),
+                      color:Color(0xFF4A1A70),
                       blurRadius: 8,
                       offset: Offset(0, 3),
                     ),

@@ -58,13 +58,13 @@ class _StoreState extends State<Store> {
               Expanded(
                 child: RefreshIndicator(
                   onRefresh: fetchProducts,
-                  color: Colors.orange,
+                  color: Color(0xFF4A1A70),
                   child: Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: isLoading
                         ? const Center(
                             child: CircularProgressIndicator(
-                              color: Colors.orange,
+                              color: Color(0xFF4A1A70),
                             ),
                           )
                         : GridView.builder(
@@ -118,14 +118,14 @@ class _StoreState extends State<Store> {
           Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [Colors.orangeAccent, Colors.orange.shade700],
+                colors: [Color(0xFF4A1A70), Color(0xFF4A1A70)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
               borderRadius: BorderRadius.circular(30),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.orange.withOpacity(0.3),
+                  color: Color(0xFF4A1A70),
                   blurRadius: 8,
                   offset: Offset(0, 2),
                 ),
@@ -215,7 +215,7 @@ class _StoreState extends State<Store> {
                         child: Text(
                           "\$${item["product_price"] ?? '0.00'}",
                           style: TextStyle(
-                            color: Colors.orange,
+                            color: Color(0xFF4A1A70),
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -242,14 +242,14 @@ class _StoreState extends State<Store> {
                   margin: EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [Colors.orangeAccent, Colors.orange.shade700],
+                      colors: [Color(0xFF4A1A70),Color(0xFF4A1A70),],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
                     borderRadius: BorderRadius.circular(12),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.orange.withOpacity(0.3),
+                        color: Color(0xFF4A1A70),
                         blurRadius: 4,
                         offset: Offset(0, 2),
                       ),

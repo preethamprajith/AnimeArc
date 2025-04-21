@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:user/main.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 
 class OrderDetailsPage extends StatefulWidget {
   final int orderId;
@@ -58,6 +59,7 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
           "total": price * quantity,
           "status": item['cart_status'],
           "booking_trackid": orderResponse['booking_trackid'] ?? '',
+          "tbl_product": product, // Add this line to include the full product data
         };
       }).toList();
 
@@ -84,7 +86,7 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
       backgroundColor: Colors.black,
       appBar: AppBar(
         title: Text("Order #${widget.orderId}", style: const TextStyle(color: Colors.white)),
-        backgroundColor: Colors.orange,
+        backgroundColor: Color(0xFF4A1A70),
         centerTitle: true,
         elevation: 4,
       ),
@@ -198,7 +200,19 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
                       icon: const Icon(Icons.local_shipping_outlined, color: Colors.white70),
                       label: Text("Track Shipment", style: const TextStyle(color: Colors.white70)),
                     ),
-                  ]
+                  ],
+                  if (status == 3) ...[  // Only show review button for delivered items
+                    const SizedBox(height: 8),
+                    ElevatedButton.icon(
+                      onPressed: () => _showReviewDialog(item),
+                      icon: const Icon(Icons.rate_review, color: Colors.white),
+                      label: const Text('Write Review'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.orange,
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -231,6 +245,132 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
         return Colors.green;
       default:
         return Colors.red;
+    }
+  }
+
+  Future<void> _showReviewDialog(Map<String, dynamic> item) async {
+    // Check if we have the product data
+    final productData = item['tbl_product'];
+    if (productData == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Product information not found')),
+      );
+      return;
+    }
+
+    final productId = productData['product_id'];
+    if (productId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Product ID not found')),
+      );
+      return;
+    }
+
+    final _reviewController = TextEditingController();
+    double _rating = 3.0;
+    
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.grey[900],
+        title: Text('Review ${item['product'] ?? 'Product'}',
+            style: const TextStyle(color: Colors.white)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // ...existing RatingBar code...
+            RatingBar.builder(
+              initialRating: _rating,
+              minRating: 1,
+              direction: Axis.horizontal,
+              allowHalfRating: true,
+              itemCount: 5,
+              itemPadding: const EdgeInsets.symmetric(horizontal: 4.0),
+              itemBuilder: (context, _) => const Icon(
+                Icons.star,
+                color: Colors.amber,
+              ),
+              onRatingUpdate: (rating) {
+                _rating = rating;
+              },
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _reviewController,
+              style: const TextStyle(color: Colors.white),
+              maxLines: 3,
+              decoration: const InputDecoration(
+                hintText: 'Write your review...',
+                hintStyle: TextStyle(color: Colors.grey),
+                border: OutlineInputBorder(),
+                enabledBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: Colors.grey),
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (_reviewController.text.trim().isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Please write a review')),
+                );
+                return;
+              }
+              Navigator.pop(context);
+              _submitReview(productId, _rating, _reviewController.text);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange,
+            ),
+            child: const Text('Submit Review'),
+          ),
+        ],
+      ),
+    );
+
+    // Dispose the controller
+    _reviewController.dispose();
+  }
+
+  Future<void> _submitReview(int productId, double rating, String content) async {
+    try {
+      final userId = supabase.auth.currentUser?.id;
+      if (userId == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Please login to submit a review')),
+          );
+        }
+        return;
+      }
+
+      await supabase.from('tbl_review').insert({
+        'review_rating': rating.toString(),
+        'review_content': content.trim(),
+        'review_date': DateTime.now().toIso8601String(),
+        'user_id': userId,
+        'product_id': productId,
+        'anime_id': null,
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Review submitted successfully!')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error submitting review: $e')),
+        );
+      }
     }
   }
 }

@@ -30,7 +30,7 @@ class _OrdersPageState extends State<OrdersPage> {
           .from('tbl_booking')
           .select('booking_id, booking_data')
           .eq('user_id', user.id)
-          .eq('booking_status', 2)
+          .gte('booking_status', 1)
           .order('booking_data', ascending: false); // Sort by newest first
 
       if (bookings.isEmpty) {

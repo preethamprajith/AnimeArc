@@ -13,7 +13,8 @@ class UploadAnimeVideo extends StatefulWidget {
   State<UploadAnimeVideo> createState() => _UploadAnimeVideoState();
 }
 
-class _UploadAnimeVideoState extends State<UploadAnimeVideo> with SingleTickerProviderStateMixin {
+class _UploadAnimeVideoState extends State<UploadAnimeVideo>
+    with SingleTickerProviderStateMixin {
   final TextEditingController _episodeController = TextEditingController();
   final TextEditingController _seasonController = TextEditingController();
   List<Map<String, dynamic>> animeFiles = [];
@@ -56,7 +57,7 @@ class _UploadAnimeVideoState extends State<UploadAnimeVideo> with SingleTickerPr
           .select()
           .eq('anime_id', widget.animeId)
           .order('animefile_season, animefile_episode');
-      
+
       setState(() {
         animeFiles = List<Map<String, dynamic>>.from(response);
         // Extract unique seasons
@@ -65,9 +66,10 @@ class _UploadAnimeVideoState extends State<UploadAnimeVideo> with SingleTickerPr
             .toSet()
             .toList()
           ..sort();
-        
+
         // Initialize TabController after getting seasons
-        _tabController = TabController(length: seasons.isEmpty ? 1 : seasons.length, vsync: this);
+        _tabController = TabController(
+            length: seasons.isEmpty ? 1 : seasons.length, vsync: this);
       });
     } catch (e) {
       showSnackbar("Error fetching anime files", Colors.red);
@@ -202,8 +204,8 @@ class _UploadAnimeVideoState extends State<UploadAnimeVideo> with SingleTickerPr
                   decoration: const BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
-                        Color.fromARGB(255, 226, 116, 7),
-                        Color.fromARGB(255, 196, 128, 32)
+                        const Color(0xFF5D1E9E),
+                        const Color(0xFF5D1E9E),
                       ],
                       begin: Alignment.centerLeft,
                       end: Alignment.centerRight,
@@ -274,7 +276,7 @@ class _UploadAnimeVideoState extends State<UploadAnimeVideo> with SingleTickerPr
                           decoration: const InputDecoration(
                             prefixIcon: Icon(
                               Icons.category,
-                              color: Color.fromARGB(255, 226, 116, 7),
+                              color: const Color(0xFF5D1E9E),
                             ),
                             border: InputBorder.none,
                             contentPadding: EdgeInsets.symmetric(
@@ -317,7 +319,7 @@ class _UploadAnimeVideoState extends State<UploadAnimeVideo> with SingleTickerPr
                             color: Colors.grey[800],
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: const Color.fromARGB(255, 226, 116, 7),
+                              color: const Color.fromARGB(255, 0, 0, 0),
                               width: 1,
                               style: BorderStyle.solid,
                             ),
@@ -329,7 +331,7 @@ class _UploadAnimeVideoState extends State<UploadAnimeVideo> with SingleTickerPr
                                     ? Icons.check_circle
                                     : Icons.cloud_upload,
                                 size: 48,
-                                color: const Color.fromARGB(255, 226, 116, 7),
+                                color: const Color(0xFF5D1E9E),
                               ),
                               const SizedBox(height: 12),
                               Text(
@@ -378,7 +380,8 @@ class _UploadAnimeVideoState extends State<UploadAnimeVideo> with SingleTickerPr
                           Navigator.of(context).pop();
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color.fromARGB(255, 226, 116, 7),
+                          backgroundColor:
+                              const Color.fromARGB(255, 226, 116, 7),
                           padding: const EdgeInsets.symmetric(
                             horizontal: 24,
                             vertical: 12,
@@ -454,7 +457,8 @@ class _UploadAnimeVideoState extends State<UploadAnimeVideo> with SingleTickerPr
 
   List<Map<String, dynamic>> getEpisodesForSeason(int season) {
     return animeFiles
-        .where((file) => int.parse(file['animefile_season'].toString()) == season)
+        .where(
+            (file) => int.parse(file['animefile_season'].toString()) == season)
         .toList()
       ..sort((a, b) => int.parse(a['animefile_episode'].toString())
           .compareTo(int.parse(b['animefile_episode'].toString())));
@@ -505,12 +509,12 @@ class _UploadAnimeVideoState extends State<UploadAnimeVideo> with SingleTickerPr
               leading: Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.orange.withOpacity(0.1),
+                  color: const Color.fromARGB(255, 170, 82, 225).withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Icon(
                   Icons.video_library,
-                  color: Color.fromARGB(255, 196, 128, 32),
+                  color: const Color(0xFF5D1E9E),
                   size: 32,
                 ),
               ),
@@ -531,17 +535,19 @@ class _UploadAnimeVideoState extends State<UploadAnimeVideo> with SingleTickerPr
                         context: context,
                         builder: (context) => VideoPlayerDialog(
                           videoUrl: episode['animefile_file'],
-                          episodeNumber: episode['animefile_episode'].toString(),
+                          episodeNumber:
+                              episode['animefile_episode'].toString(),
                         ),
                       );
                     },
-                    icon: const Icon(Icons.play_circle_outline, color: Colors.white),
+                    icon: const Icon(Icons.play_circle_outline,
+                        color: Colors.white),
                     label: const Text(
                       'Play',
                       style: TextStyle(color: Colors.white),
                     ),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color.fromARGB(255, 196, 128, 32),
+                      backgroundColor: const Color.fromARGB(255, 142, 76, 207),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
@@ -569,8 +575,8 @@ class _UploadAnimeVideoState extends State<UploadAnimeVideo> with SingleTickerPr
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             colors: [
-              Color.fromARGB(255, 222, 149, 54),
-              Color.fromARGB(255, 196, 128, 32)
+              const Color(0xFF5D1E9E),
+              const Color(0xFF5D1E9E),
             ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
@@ -751,7 +757,7 @@ class _UploadAnimeVideoState extends State<UploadAnimeVideo> with SingleTickerPr
           .from('tbl_animefile')
           .delete()
           .eq('animefile_id', fileId);
-      
+
       await fetchAnimeFiles();
       showSnackbar("Episode deleted successfully", Colors.green);
     } catch (e) {
@@ -787,7 +793,7 @@ class _VideoPlayerDialogState extends State<VideoPlayerDialog> {
 
   Future<void> _initializePlayer() async {
     _videoPlayerController = VideoPlayerController.network(widget.videoUrl);
-    
+
     try {
       await _videoPlayerController.initialize();
       _chewieController = ChewieController(

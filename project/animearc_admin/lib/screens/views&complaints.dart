@@ -21,7 +21,8 @@ class _ComplaintPageState extends State<ComplaintPage> {
     try {
       final response = await Supabase.instance.client
           .from('tbl_complaint')
-          .select('*');
+          .select('*, tbl_user(user_name)')
+          .order('complaint_date', ascending: false);
 
       setState(() {
         complaints = response;

@@ -249,8 +249,8 @@ class _MangaPagesState extends State<MangaPages> {
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             colors: [
-              Color.fromARGB(255, 222, 149, 54),
-              Color.fromARGB(255, 196, 128, 32)
+              const Color(0xFF5D1E9E),
+              const Color(0xFF5D1E9E),
             ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
@@ -420,8 +420,8 @@ class _MangaPagesState extends State<MangaPages> {
                     decoration: const BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
-                          Color.fromARGB(255, 226, 116, 7),
-                          Color.fromARGB(255, 196, 128, 32)
+                          const Color(0xFF5D1E9E),
+                         const Color(0xFF5D1E9E),
                         ],
                         begin: Alignment.centerLeft,
                         end: Alignment.centerRight,
@@ -493,7 +493,7 @@ class _MangaPagesState extends State<MangaPages> {
                               color: Colors.grey[800],
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
-                                color: const Color.fromARGB(255, 226, 116, 7),
+                                color:const Color(0xFF5D1E9E),
                                 width: 1,
                               ),
                             ),
@@ -546,7 +546,7 @@ class _MangaPagesState extends State<MangaPages> {
                             Navigator.of(context).pop();
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color.fromARGB(255, 226, 116, 7),
+                            backgroundColor: const Color(0xFF5D1E9E),
                             padding: const EdgeInsets.symmetric(
                               horizontal: 24,
                               vertical: 12,
