@@ -5,9 +5,9 @@ import 'package:user/screens/login.dart';
 import 'package:user/screens/my_order.dart';
 import 'package:user/screens/privacy.dart';
 import 'package:user/screens/profilesettings.dart';
-import 'package:user/main.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:user/components/anime_button.dart';
+import 'package:user/theme/anime_theme.dart';
 
 class Account extends StatefulWidget {
   const Account({super.key});
@@ -86,10 +86,7 @@ class _AccountState extends State<Account> {
         ),
         centerTitle: true,
         actions: [
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.notifications_outlined, color: Colors.white),
-          ),
+         
         ],
       ),
       body: Stack(
@@ -136,17 +133,6 @@ class _AccountState extends State<Account> {
                         ),
                         
                         // Settings Options
-                        _buildSettingItem(
-                          Icons.person_outline, 
-                          "Edit Profile", 
-                          const Profilesettings(),
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFF7D3C98), Color(0xFF6C3483)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                        ),
-                        
                         _buildSettingItem(
                           Icons.lock_outline, 
                           "Privacy & Security", 
@@ -208,90 +194,179 @@ class _AccountState extends State<Account> {
     );
   }
 
+  // Update the _buildProfileCard method
   Widget _buildProfileCard() {
-    return Container(
-      padding: const EdgeInsets.all(16),
+    return AnimatedContainer(
+      duration: AnimeTheme.defaultDuration,
+      curve: AnimeTheme.defaultCurve,
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            AnimeTheme.brightPurple.withOpacity(0.7),
-            AnimeTheme.accentPink.withOpacity(0.7),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(20),
+        gradient: AnimeTheme.profileGradient,
+        borderRadius: BorderRadius.circular(30),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.3),
-            blurRadius: 15,
+            color: AnimeTheme.accentPink.withOpacity(0.2),
+            blurRadius: 20,
             spreadRadius: 5,
           ),
         ],
       ),
       child: Column(
         children: [
-          // Avatar
-          CircleAvatar(
-            radius: 60,
-            backgroundColor: Colors.white.withOpacity(0.2),
-            child: CircleAvatar(
-              radius: 55,
-              backgroundColor: AnimeTheme.primaryPurple,
-              child: Icon(
-                Icons.person,
-                size: 60, 
-                color: AnimeTheme.accentPink,
+          // Enhanced Avatar with Glow Effect
+          Container(
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: AnimeTheme.accentPink.withOpacity(0.3),
+                  blurRadius: 25,
+                  spreadRadius: 10,
+                ),
+              ],
+            ),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                // Animated background glow
+                TweenAnimationBuilder(
+                  tween: Tween<double>(begin: 0.5, end: 1.0),
+                  duration: const Duration(seconds: 2),
+                  curve: Curves.easeInOut,
+                  builder: (context, value, child) {
+                    return Container(
+                      width: 140,
+                      height: 140,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: RadialGradient(
+                          colors: [
+                            AnimeTheme.accentPink.withOpacity(0.5 * value),
+                            AnimeTheme.brightPurple.withOpacity(0.2 * value),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                // Avatar
+                Hero(
+                  tag: 'profile-avatar',
+                  child: CircleAvatar(
+                    radius: 60,
+                    backgroundColor: Colors.white.withOpacity(0.2),
+                    child: CircleAvatar(
+                      radius: 55,
+                      backgroundColor: AnimeTheme.primaryPurple,
+                      child: Icon(
+                        Icons.person,
+                        size: 60,
+                        color: AnimeTheme.accentPink,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 24),
+
+          // Enhanced Username with Gradient
+          ShaderMask(
+            shaderCallback: (bounds) => const LinearGradient(
+              colors: [Colors.white, AnimeTheme.accentPink],
+            ).createShader(bounds),
+            child: Text(
+              userName,
+              style: GoogleFonts.montserrat(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
               ),
             ),
           ),
-          
-          const SizedBox(height: 16),
-          
-          // Username
-          Text(
-            userName,
-            style: GoogleFonts.montserrat(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
+
+          const SizedBox(height: 12),
+
+          // Enhanced Email Container
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.2),
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.email,
+                  size: 16,
+                  color: Colors.white.withOpacity(0.8),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  userEmail,
+                  style: GoogleFonts.poppins(
+                    fontSize: 16,
+                    color: Colors.white.withOpacity(0.8),
+                  ),
+                ),
+              ],
             ),
           ),
-          
-          const SizedBox(height: 8),
-          
-          // Email
-          Text(
-            userEmail,
-            style: GoogleFonts.poppins(
-              fontSize: 16,
-              color: Colors.white.withOpacity(0.8),
-            ),
-          ),
-          
-          const SizedBox(height: 16),
-          
-          // Edit Profile Button
-          SizedBox(
+
+          const SizedBox(height: 24),
+
+          // Enhanced Edit Profile Button
+          Container(
             width: double.infinity,
-            child: ElevatedButton.icon(
-              icon: const Icon(Icons.edit, size: 18),
-              label: Text(
-                "Edit Profile",
-                style: GoogleFonts.poppins(fontSize: 14),
-              ),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const Profilesettings()),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white.withOpacity(0.2),
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(30),
+            height: 50,
+            decoration: BoxDecoration(
+              gradient: AnimeTheme.accentGradient,
+              borderRadius: BorderRadius.circular(25),
+              boxShadow: [
+                BoxShadow(
+                  color: AnimeTheme.accentPink.withOpacity(0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const Profilesettings()),
+                  );
+                },
+                borderRadius: BorderRadius.circular(25),
+                child: Center(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.edit,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        "Edit Profile",
+                        style: GoogleFonts.poppins(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                          letterSpacing: 1,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),

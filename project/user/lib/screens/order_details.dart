@@ -3,6 +3,9 @@ import 'package:user/main.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:timeline_tile/timeline_tile.dart';
+import 'package:user/utils/order_status.dart';
 
 class OrderDetailsPage extends StatefulWidget {
   final int orderId;
@@ -83,55 +86,288 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: const Color(0xFF1A1A1A),
       appBar: AppBar(
-        title: Text("Order #${widget.orderId}", style: const TextStyle(color: Colors.white)),
-        backgroundColor: Color(0xFF4A1A70),
+        backgroundColor: const Color(0xFF4A1A70),
+        elevation: 0,
+        title: Text(
+          "Order #${widget.orderId}",
+          style: GoogleFonts.poppins(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+          ),
+        ),
         centerTitle: true,
-        elevation: 4,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator(color: Colors.orange))
-          : errorMessage.isNotEmpty
-              ? Center(child: Text(errorMessage, style: const TextStyle(color: Colors.red)))
-              : buildOrderDetails(),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              const Color(0xFF4A1A70).withOpacity(0.9),
+              const Color(0xFF1A1A1A),
+            ],
+          ),
+        ),
+        child: isLoading
+            ? Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.orange),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      "Loading order details...",
+                      style: GoogleFonts.poppins(
+                        color: Colors.white70,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            : errorMessage.isNotEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.error_outline,
+                          color: Colors.red,
+                          size: 48,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          errorMessage,
+                          style: GoogleFonts.poppins(
+                            color: Colors.red,
+                            fontSize: 16,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  )
+                : buildEnhancedOrderDetails(),
+      ),
     );
   }
 
-  Widget buildOrderDetails() {
+  Widget buildEnhancedOrderDetails() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Card(
-            color: Colors.grey[900],
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text("Order Items",
-                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
-                  const SizedBox(height: 10),
-                  ListView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: orderItems.length,
-                    itemBuilder: (context, index) => buildOrderItemCard(orderItems[index]),
+          // Order Status Timeline
+          Container(
+            margin: const EdgeInsets.only(bottom: 24),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.1),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Order Status",
+                  style: GoogleFonts.poppins(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
                   ),
-                  const SizedBox(height: 10),
-                  Divider(color: Colors.grey),
-                  Text(
-                    "Total Amount: ₹${orderDetails!["total_amount"].toStringAsFixed(2)}",
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.orange),
-                  ),
+                ),
+                const SizedBox(height: 16),
+                buildOrderTimeline(),
+              ],
+            ),
+          ),
+
+          // Order Items Section
+          Text(
+            "Order Items",
+            style: GoogleFonts.poppins(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 16),
+          ListView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: orderItems.length,
+            itemBuilder: (context, index) => buildOrderItemCard(orderItems[index]),
+          ),
+
+          // Order Summary
+          Container(
+            margin: const EdgeInsets.only(top: 24),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Colors.orange.withOpacity(0.2),
+                  Colors.purple.withOpacity(0.2),
                 ],
               ),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: Colors.orange.withOpacity(0.3),
+              ),
+            ),
+            child: Column(
+              children: [
+                buildSummaryRow("Subtotal", "₹${orderDetails!["total_amount"].toStringAsFixed(2)}"),
+                const Divider(color: Colors.white24),
+                buildSummaryRow(
+                  "Total",
+                  "₹${orderDetails!["total_amount"].toStringAsFixed(2)}",
+                  isTotal: true,
+                ),
+              ],
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget buildSummaryRow(String label, String value, {bool isTotal = false}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: GoogleFonts.poppins(
+              color: Colors.white70,
+              fontSize: isTotal ? 18 : 16,
+              fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
+            ),
+          ),
+          Text(
+            value,
+            style: GoogleFonts.poppins(
+              color: isTotal ? Colors.orange : Colors.white,
+              fontSize: isTotal ? 20 : 16,
+              fontWeight: isTotal ? FontWeight.bold : FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Update the buildOrderTimeline method
+  Widget buildOrderTimeline() {
+    final status = orderDetails!["booking_status"] as int;
+    bool hasDeliveredItems = orderItems.any((item) => item['status'] == 3);
+    
+    return Column(
+      children: [
+        buildTimelineTile(
+          "Confirmed", 
+          1, 
+          status >= 1,
+        ),
+        buildTimelineTile(
+          "Shipped", 
+          2, 
+          status >= 2,
+        ),
+        buildTimelineTile(
+          "Delivered", 
+          3, 
+          hasDeliveredItems,
+        ),
+      ],
+    );
+  }
+
+  // Update the buildTimelineTile method
+  Widget buildTimelineTile(String title, int step, bool isCompleted) {
+    final Color statusColor = isCompleted 
+        ? OrderStatus.getColor(OrderStatus.DELIVERED)
+        : step == 3 && !isCompleted
+            ? OrderStatus.getColor(OrderStatus.SHIPPED)
+            : Colors.grey.withOpacity(0.3);
+
+    final IconData statusIcon = isCompleted 
+        ? OrderStatus.getIcon(OrderStatus.DELIVERED)
+        : step == 3 && !isCompleted
+            ? OrderStatus.getIcon(OrderStatus.SHIPPED)
+            : Icons.circle;
+
+    return TimelineTile(
+      isFirst: step == OrderStatus.CONFIRMED,
+      isLast: step == OrderStatus.DELIVERED,
+      beforeLineStyle: LineStyle(
+        color: isCompleted 
+            ? OrderStatus.getColor(OrderStatus.DELIVERED)
+            : Colors.grey.withOpacity(0.3),
+      ),
+      indicatorStyle: IndicatorStyle(
+        width: 30,
+        height: 30,
+        indicator: Container(
+          decoration: BoxDecoration(
+            color: statusColor,
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: statusColor.withOpacity(0.3),
+                blurRadius: 8,
+                spreadRadius: 2,
+              ),
+            ],
+          ),
+          child: Icon(
+            statusIcon,
+            color: Colors.white,
+            size: 16,
+          ),
+        ),
+      ),
+      endChild: Container(
+        margin: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Text(
+              title,
+              style: GoogleFonts.poppins(
+                color: isCompleted ? Colors.white : Colors.grey,
+                fontSize: 16,
+                fontWeight: isCompleted ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+            if (step == 3 && !isCompleted) ...[
+              const SizedBox(width: 8),
+              Text(
+                '(In Transit)',
+                style: GoogleFonts.poppins(
+                  color: Colors.orange,
+                  fontSize: 12,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
@@ -201,16 +437,42 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
                       label: Text("Track Shipment", style: const TextStyle(color: Colors.white70)),
                     ),
                   ],
-                  if (status == 3) ...[  // Only show review button for delivered items
+                  if (status == 3) ...[
                     const SizedBox(height: 8),
-                    ElevatedButton.icon(
-                      onPressed: () => _showReviewDialog(item),
-                      icon: const Icon(Icons.rate_review, color: Colors.white),
-                      label: const Text('Write Review'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.orange,
-                        foregroundColor: Colors.white,
-                      ),
+                    FutureBuilder<bool>(
+                      future: _hasUserReviewed(item['tbl_product']['product_id']),
+                      builder: (context, snapshot) {
+                        if (snapshot.data == true) {
+                          return Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: Colors.green.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: const [
+                                Icon(Icons.check_circle, color: Colors.green, size: 16),
+                                SizedBox(width: 4),
+                                Text(
+                                  'Reviewed',
+                                  style: TextStyle(color: Colors.green),
+                                ),
+                              ],
+                            ),
+                          );
+                        } else {
+                          return ElevatedButton.icon(
+                            onPressed: () => _showReviewDialog(item),
+                            icon: const Icon(Icons.rate_review, color: Colors.white),
+                            label: const Text('Write Review'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.orange,
+                              foregroundColor: Colors.white,
+                            ),
+                          );
+                        }
+                      },
                     ),
                   ],
                 ],
@@ -264,6 +526,30 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
         const SnackBar(content: Text('Product ID not found')),
       );
       return;
+    }
+
+    // Check if user has already reviewed this product
+    try {
+      final response = await supabase
+          .from('tbl_review')
+          .select('review_id')
+          .eq('product_id', productId)
+          .eq('user_id', supabase.auth.currentUser!.id)
+          .limit(1);
+
+      if (response.isNotEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('You have already reviewed this product'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+        return;
+      }
+    } catch (e) {
+      print('Error checking existing review: $e');
     }
 
     final _reviewController = TextEditingController();
@@ -361,16 +647,46 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
       });
 
       if (mounted) {
+        // Show success message
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Review submitted successfully!')),
+          const SnackBar(
+            content: Text('Review submitted successfully!'),
+            backgroundColor: Colors.green,
+          ),
         );
+        
+        // Refresh the page
+        setState(() {
+          isLoading = true;
+        });
+        await fetchOrderDetails();
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error submitting review: $e')),
+          SnackBar(
+            content: Text('Error submitting review: $e'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
+    }
+  }
+
+  // Add this method to check if product is reviewed
+  Future<bool> _hasUserReviewed(int productId) async {
+    try {
+      final response = await supabase
+          .from('tbl_review')
+          .select('review_id')
+          .eq('product_id', productId)
+          .eq('user_id', supabase.auth.currentUser!.id)
+          .limit(1);
+
+      return response.isNotEmpty;
+    } catch (e) {
+      print('Error checking review status: $e');
+      return false;
     }
   }
 }

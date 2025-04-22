@@ -23,7 +23,16 @@ class _StoreState extends State<Store> {
 
   Future<void> fetchProducts() async {
     try {
-      final response = await supabase.from('tbl_product').select();
+      final response = await supabase
+          .from('tbl_product')
+          .select('''
+            *,
+            tbl_stock (
+              stock_qty
+            )
+          ''')
+          .order('product_id');
+      
       setState(() {
         merchandise = List<Map<String, dynamic>>.from(response);
         isLoading = false;
@@ -147,8 +156,34 @@ class _StoreState extends State<Store> {
   }
 
   Widget _buildMerchCard(Map<String, dynamic> item) {
+    // Get stock quantity from the joined table
+    final stockData = item['tbl_stock'] as List?;
+    final inStock = stockData != null && 
+                   stockData.isNotEmpty && 
+                   (stockData[0]['stock_qty'] ?? 0) > 0;
+
     return GestureDetector(
       onTap: () {
+        if (!inStock) {
+          // Show out of stock message
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text(
+                'This product is currently out of stock',
+                style: TextStyle(color: Colors.white),
+              ),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 2),
+              behavior: SnackBarBehavior.floating,
+              margin: const EdgeInsets.all(16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+          );
+          return;
+        }
+        
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -203,19 +238,41 @@ class _StoreState extends State<Store> {
                         },
                       ),
                     ),
+                    // Stock Status Badge
+                    Positioned(
+                      top: 8,
+                      left: 8,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: inStock ? Colors.green.withOpacity(0.9) : Colors.red.withOpacity(0.9),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          inStock ? 'IN STOCK' : 'OUT OF STOCK',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                    // Price Badge
                     Positioned(
                       top: 8,
                       right: 8,
                       child: Container(
-                        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
                           color: Colors.black.withOpacity(0.7),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
-                          "\$${item["product_price"] ?? '0.00'}",
-                          style: TextStyle(
-                            color: Color(0xFF4A1A70),
+                          // Safe conversion of price to double before formatting
+                          "\$${(double.tryParse(item["product_price"].toString()) ?? 0).toStringAsFixed(2)}",
+                          style: const TextStyle(
+                            color: Colors.white,  // Changed from Color(0xFF4A1A70) for better visibility
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -232,40 +289,43 @@ class _StoreState extends State<Store> {
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
                     ),
-                    maxLines: 1,
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 const Spacer(),
                 Container(
                   width: double.infinity,
-                  margin: EdgeInsets.all(8),
+                  margin: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [Color(0xFF4A1A70),Color(0xFF4A1A70),],
+                      colors: [
+                        inStock ? const Color(0xFF4A1A70) : Colors.grey,
+                        inStock ? const Color(0xFF4A1A70) : Colors.grey,
+                      ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
                     borderRadius: BorderRadius.circular(12),
                     boxShadow: [
                       BoxShadow(
-                        color: Color(0xFF4A1A70),
+                        color: inStock ? const Color(0xFF4A1A70) : Colors.grey,
                         blurRadius: 4,
-                        offset: Offset(0, 2),
+                        offset: const Offset(0, 2),
                       ),
                     ],
                   ),
                   child: Material(
                     color: Colors.transparent,
                     child: InkWell(
-                      onTap: () {
+                      onTap: inStock ? () {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder: (context) => ProductPage(productId: item['product_id']),
                           ),
                         );
-                      },
+                      } : null,
                       borderRadius: BorderRadius.circular(12),
                       splashColor: Colors.white24,
                       child: Padding(
@@ -273,16 +333,21 @@ class _StoreState extends State<Store> {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Text(
-                              "View",
+                            Text(
+                              "VIEW MORE",
                               style: TextStyle(
-                                color: Colors.white,
+                                color: inStock ? Colors.white : Colors.white54,
                                 fontWeight: FontWeight.bold,
                                 fontSize: 14,
+                                letterSpacing: 1,
                               ),
                             ),
-                            SizedBox(width: 4),
-                            Icon(Icons.arrow_forward, size: 14, color: Colors.white)
+                            const SizedBox(width: 4),
+                            Icon(
+                              Icons.arrow_forward,
+                              size: 14,
+                              color: inStock ? Colors.white : Colors.white54,
+                            )
                           ],
                         ),
                       ),

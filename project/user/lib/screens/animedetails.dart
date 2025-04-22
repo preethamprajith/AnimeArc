@@ -2,6 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:video_player/video_player.dart';
 import 'package:chewie/chewie.dart';
+import 'package:google_fonts/google_fonts.dart';
+
+const Color kPrimaryPurple = Color(0xFF4A1A70);
+const Color kDarkPurple = Color(0xFF2D1F4C);
+const Color kLightPurple = Color(0xFF9B6DFF);
+const Color kDeepPurple = Color(0xFF1A0F2C);
 
 class Animedetails extends StatefulWidget {
   final int animeId;
@@ -172,69 +178,188 @@ class _AnimedetailsState extends State<Animedetails> with SingleTickerProviderSt
   @override
   Widget build(BuildContext context) {
     if (isLoading) {
-      return const Scaffold(
-        backgroundColor: Colors.black,
-        body: Center(child: CircularProgressIndicator(
-          color: Colors.orange,
-        )),
+      return Scaffold(
+        backgroundColor: kDeepPurple,
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(kLightPurple),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Loading anime...',
+                style: GoogleFonts.poppins(
+                  color: kLightPurple,
+                  fontSize: 16,
+                ),
+              ),
+            ],
+          ),
+        ),
       );
     }
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: kDeepPurple,
       body: CustomScrollView(
+        physics: const BouncingScrollPhysics(),
         slivers: [
           SliverAppBar(
-            expandedHeight: 300,
+            expandedHeight: 350,
             pinned: true,
+            backgroundColor: kPrimaryPurple,
             flexibleSpace: FlexibleSpaceBar(
-              background: Image.network(
-                animeDetails!['anime_poster'],
-                fit: BoxFit.cover,
+              background: Stack(
+                fit: StackFit.expand,
+                children: [
+                  ShaderMask(
+                    shaderCallback: (rect) {
+                      return LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.black,
+                          Colors.transparent,
+                        ],
+                      ).createShader(rect);
+                    },
+                    blendMode: BlendMode.dstIn,
+                    child: Image.network(
+                      animeDetails!['anime_poster'],
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          kDeepPurple.withOpacity(0.3),
+                          kDeepPurple,
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
             actions: [
-              IconButton(
-                icon: Icon(
-                  isInWatchlist ? Icons.bookmark : Icons.bookmark_border,
-                  color: isInWatchlist ? Colors.orange : Colors.white,
+              Container(
+                margin: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: kDarkPurple.withOpacity(0.7),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: isInWatchlist ? kLightPurple : Colors.white24,
+                    width: 2,
+                  ),
                 ),
-                onPressed: toggleWatchlist,
+                child: IconButton(
+                  icon: Icon(
+                    isInWatchlist ? Icons.bookmark : Icons.bookmark_border,
+                    color: isInWatchlist ? kLightPurple : Colors.white,
+                  ),
+                  onPressed: toggleWatchlist,
+                ),
               ),
             ],
           ),
           SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    animeDetails!['anime_name'],
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
+            child: Transform.translate(
+              offset: const Offset(0, -30),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: kDeepPurple,
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(30),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black26,
+                      blurRadius: 20,
+                      offset: const Offset(0, -10),
                     ),
+                  ],
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        animeDetails!['anime_name'],
+                        style: GoogleFonts.poppins(
+                          color: Colors.white,
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [kLightPurple, kPrimaryPurple],
+                          ),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          animeDetails!['tbl_genre']['genre_name'],
+                          style: GoogleFonts.poppins(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: kDarkPurple,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: kLightPurple.withOpacity(0.2),
+                          ),
+                        ),
+                        child: Text(
+                          animeDetails!['anime_description'] ?? 'No description available',
+                          style: GoogleFonts.poppins(
+                            color: Colors.white70,
+                            fontSize: 16,
+                            height: 1.5,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      if (_chewieController != null)
+                        Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: kLightPurple.withOpacity(0.2),
+                                blurRadius: 16,
+                                offset: const Offset(0, 8),
+                              ),
+                            ],
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(16),
+                            child: AspectRatio(
+                              aspectRatio: 16 / 9,
+                              child: Chewie(controller: _chewieController!),
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    animeDetails!['anime_description'] ?? 'No description available',
-                    style: const TextStyle(color: Colors.grey),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Genre: ${animeDetails!['tbl_genre']['genre_name']}',
-                    style: const TextStyle(color: Colors.orange),
-                  ),
-                  const SizedBox(height: 24),
-                  if (_chewieController != null)
-                    AspectRatio(
-                      aspectRatio: 16 / 9,
-                      child: Chewie(controller: _chewieController!),
-                    ),
-                  const SizedBox(height: 16),
-                ],
+                ),
               ),
             ),
           ),
@@ -244,41 +369,97 @@ class _AnimedetailsState extends State<Animedetails> with SingleTickerProviderSt
                 controller: _tabController,
                 isScrollable: true,
                 tabs: seasonEpisodes.keys
-                    .map((season) => Tab(text: 'Season $season'))
+                    .map((season) => Tab(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              border: Border.all(
+                                color: kLightPurple.withOpacity(0.3),
+                              ),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text('Season $season'),
+                          ),
+                        ))
                     .toList(),
-                indicatorColor: Colors.orange,
-                labelColor: Colors.orange,
+                indicatorSize: TabBarIndicatorSize.label,
+                indicatorColor: kLightPurple,
+                labelColor: kLightPurple,
                 unselectedLabelColor: Colors.grey,
               ),
             ),
             pinned: true,
           ),
-          SliverFillRemaining(
-            child: TabBarView(
-              controller: _tabController,
-              children: seasonEpisodes.entries.map((entry) {
-                return ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: entry.value.length,
-                  itemBuilder: (context, index) {
-                    final episode = entry.value[index];
-                    return Card(
-                      color: Colors.grey[900],
-                      child: ListTile(
-                        title: Text(
-                          'Episode ${episode['animefile_episode']}',
-                          style: const TextStyle(color: Colors.white),
-                        ),
-                        trailing: const Icon(Icons.play_circle_outline,
-                            color: Colors.orange),
-                        onTap: () {
-                          initializeVideo(episode['animefile_file']);
-                        },
+          SliverPadding(
+            padding: const EdgeInsets.all(16),
+            sliver: SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  final episodes = seasonEpisodes[seasonEpisodes.keys.elementAt(_tabController.index)]!;
+                  final episode = episodes[index];
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          kDarkPurple,
+                          kDeepPurple,
+                        ],
                       ),
-                    );
-                  },
-                );
-              }).toList(),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: kLightPurple.withOpacity(0.2),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black12,
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.all(12),
+                      leading: Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [kLightPurple, kPrimaryPurple],
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Center(
+                          child: Text(
+                            episode['animefile_episode'].toString(),
+                            style: GoogleFonts.poppins(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                      title: Text(
+                        'Episode ${episode['animefile_episode']}',
+                        style: GoogleFonts.poppins(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      trailing: Icon(
+                        Icons.play_circle_outline,
+                        color: kLightPurple,
+                        size: 32,
+                      ),
+                      onTap: () => initializeVideo(episode['animefile_file']),
+                    ),
+                  );
+                },
+                childCount: seasonEpisodes[seasonEpisodes.keys.elementAt(_tabController.index)]?.length ?? 0,
+              ),
             ),
           ),
         ],
@@ -300,7 +481,7 @@ class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
   @override
   Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
     return Container(
-      color: Colors.black,
+      color: kDeepPurple,
       child: _tabBar,
     );
   }

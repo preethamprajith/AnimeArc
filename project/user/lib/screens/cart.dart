@@ -52,17 +52,32 @@ class CartState extends State<Cart> {
       for (var cartItem in cartResponse) {
         final itemResponse = await supabase
             .from('tbl_product')
-            .select('product_name, product_image, product_price')
+            .select('''
+              product_name, 
+              product_image, 
+              product_price,
+              tbl_stock (
+                stock_qty
+              )
+            ''')
             .eq('product_id', cartItem['product_id'])
             .maybeSingle();
 
         if (itemResponse != null) {
+          final stockData = itemResponse['tbl_stock'] as List?;
+          final stockQty = stockData != null && stockData.isNotEmpty 
+              ? int.tryParse(stockData[0]['stock_qty'].toString()) ?? 0 
+              : 0;
+          final inStock = stockQty > 0;
+
           items.add({
             "cart_id": cartItem['cart_id'],
             "name": itemResponse['product_name'],
             "image": itemResponse['product_image'],
             "price": double.tryParse(itemResponse['product_price'] ?? '0') ?? 0.0,
             "quantity": int.tryParse(cartItem['cart_qty'] ?? '0') ?? 0,
+            "inStock": inStock,
+            "stockQty": stockQty,
           });
         }
       }
@@ -384,6 +399,26 @@ class CartState extends State<Cart> {
                             fontWeight: FontWeight.w600,
                           ),
                         ),
+                        Container(
+                          margin: const EdgeInsets.only(top: 4),
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: item['inStock'] 
+                                ? Colors.green.withOpacity(0.2)
+                                : Colors.red.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            item['inStock'] 
+                                ? 'In Stock (${item['stockQty']} available)' 
+                                : 'Out of Stock',
+                            style: TextStyle(
+                              color: item['inStock'] ? Colors.green[300] : Colors.red[300],
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
                         SizedBox(height: 16),
                         Container(
                           padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -418,10 +453,19 @@ class CartState extends State<Cart> {
                               _buildQuantityButton(
                                 icon: Icons.add,
                                 onTap: () {
-                                  updateCartQuantity(
-                                    item['cart_id'],
-                                    item['quantity'] + 1,
-                                  );
+                                  if (item['quantity'] < item['stockQty']) {
+                                    updateCartQuantity(
+                                      item['cart_id'],
+                                      item['quantity'] + 1,
+                                    );
+                                  } else {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Maximum stock quantity reached'),
+                                        backgroundColor: Colors.red,
+                                      ),
+                                    );
+                                  }
                                 },
                               ),
                             ],

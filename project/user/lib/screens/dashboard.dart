@@ -4,7 +4,7 @@ import 'package:user/screens/account.dart';
 import 'package:user/screens/mylist.dart';
 import 'package:user/screens/store.dart';
 import 'package:user/screens/userhome.dart';
-import 'package:user/main.dart'; // Import for AnimeTheme
+import 'package:user/theme/anime_theme.dart'; // Import for AnimeTheme
 
 class Dashboard extends StatefulWidget {
   final int selectedIndex; // Allow selecting an initial tab
@@ -55,63 +55,71 @@ class _DashboardState extends State<Dashboard> {
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
+          gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Color(0xFF2D0A4D), // Darker purple
-              Color(0xFF230838), // Even darker shade
+              AnimeTheme.darkPurple.withOpacity(0.95),
+              AnimeTheme.darkPurple,
             ],
           ),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.3),
-              blurRadius: 10,
-              spreadRadius: 1,
+              blurRadius: 15,
+              spreadRadius: 2,
             ),
           ],
         ),
-        child: BottomNavigationBar(
-          type: BottomNavigationBarType.fixed,
-          backgroundColor: Colors.transparent,
-          selectedItemColor: AnimeTheme.accentPink,
-          unselectedItemColor: Colors.grey[400],
-          currentIndex: _selectedIndex,
-          onTap: (index) {
-            setState(() {
-              _selectedIndex = index; // Update selected tab
-            });
-          },
-          items: [
-            BottomNavigationBarItem(
-              icon: const Icon(Icons.home_outlined),
-              activeIcon: const Icon(Icons.home),
-              label: 'Home',
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildNavItem(0, Icons.home_outlined, Icons.home, 'Home'),
+                _buildNavItem(1, Icons.list_outlined, Icons.list, 'My List'),
+                _buildNavItem(2, Icons.store_outlined, Icons.store, 'Store'),
+                _buildNavItem(3, Icons.account_circle_outlined, Icons.account_circle, 'Account'),
+              ],
             ),
-            BottomNavigationBarItem(
-              icon: const Icon(Icons.list_outlined),
-              activeIcon: const Icon(Icons.list),
-              label: 'My List',
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNavItem(int index, IconData icon, IconData activeIcon, String label) {
+    final isSelected = _selectedIndex == index;
+    
+    return GestureDetector(
+      onTap: () => setState(() => _selectedIndex = index),
+      child: AnimatedContainer(
+        duration: AnimeTheme.defaultDuration,
+        curve: AnimeTheme.defaultCurve,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          gradient: isSelected ? AnimeTheme.accentGradient : null,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              isSelected ? activeIcon : icon,
+              color: isSelected ? Colors.white : Colors.grey[400],
+              size: 24,
             ),
-            BottomNavigationBarItem(
-              icon: const Icon(Icons.store_outlined),
-              activeIcon: const Icon(Icons.store),
-              label: 'Store',
-            ),
-            BottomNavigationBarItem(
-              icon: const Icon(Icons.account_circle_outlined),
-              activeIcon: const Icon(Icons.account_circle),
-              label: 'Account',
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: GoogleFonts.poppins(
+                fontSize: isSelected ? 12 : 11,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                color: isSelected ? Colors.white : Colors.grey[400],
+              ),
             ),
           ],
-          selectedLabelStyle: GoogleFonts.poppins(
-            textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-          ),
-          unselectedLabelStyle: GoogleFonts.poppins(
-            textStyle: const TextStyle(fontSize: 11),
-          ),
-          iconSize: 24,
-          elevation: 0,
         ),
       ),
     );

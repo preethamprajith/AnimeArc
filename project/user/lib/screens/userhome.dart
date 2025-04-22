@@ -6,6 +6,13 @@ import 'package:user/screens/search_screen.dart';
 import 'package:user/main.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+class ErrorHandler {
+  static void logError(String method, dynamic error, StackTrace? stackTrace) {
+    print('Error in $method: $error');
+    if (stackTrace != null) print('Stack trace: $stackTrace');
+  }
+}
+
 class Userhome extends StatefulWidget {
   const Userhome({super.key});
 
@@ -22,10 +29,24 @@ class _UserhomeState extends State<Userhome> with SingleTickerProviderStateMixin
 
   @override
   void initState() {
-    super.initState();
-    _tabController = TabController(length: 2, vsync: this);
-    fetchGenresWithAnime();
-    fetchGenresWithManga();
+    try {
+      super.initState();
+      _tabController = TabController(length: 2, vsync: this);
+      _initializeData();
+    } catch (e, stackTrace) {
+      ErrorHandler.logError('initState', e, stackTrace);
+    }
+  }
+
+  Future<void> _initializeData() async {
+    try {
+      await Future.wait([
+        fetchGenresWithAnime(),
+        fetchGenresWithManga(),
+      ]);
+    } catch (e, stackTrace) {
+      ErrorHandler.logError('_initializeData', e, stackTrace);
+    }
   }
 
   @override
@@ -36,101 +57,166 @@ class _UserhomeState extends State<Userhome> with SingleTickerProviderStateMixin
 
   Future<void> fetchGenresWithAnime() async {
     try {
-      final genreResponse = await Supabase.instance.client.from('tbl_genre').select('*');
-      final animeResponse = await Supabase.instance.client.from('tbl_anime').select('*, tbl_genre(genre_name)');
+      final genreResponse = await Supabase.instance.client
+          .from('tbl_genre')
+          .select('*')
+          .catchError((e, stackTrace) {
+        throw Exception('Failed to fetch genres: $e');
+      });
+
+      final animeResponse = await Supabase.instance.client
+          .from('tbl_anime')
+          .select('*, tbl_genre(genre_name)')
+          .catchError((e, stackTrace) {
+        throw Exception('Failed to fetch anime: $e');
+      });
+
+      if (!mounted) return;
 
       setState(() {
-        genres = List<Map<String, dynamic>>.from(genreResponse);
-        animeByGenre = {};
+        try {
+          genres = List<Map<String, dynamic>>.from(genreResponse);
+          animeByGenre = {};
 
-        for (var anime in animeResponse) {
-          String genreName = anime['tbl_genre']['genre_name'] ?? "Unknown";
-          if (!animeByGenre.containsKey(genreName)) {
-            animeByGenre[genreName] = [];
+          for (var anime in animeResponse) {
+            String genreName = anime['tbl_genre']['genre_name'] ?? "Unknown";
+            if (!animeByGenre.containsKey(genreName)) {
+              animeByGenre[genreName] = [];
+            }
+            animeByGenre[genreName]!.add(anime);
           }
-          animeByGenre[genreName]!.add(anime);
+        } catch (e, stackTrace) {
+          ErrorHandler.logError('setState in fetchGenresWithAnime', e, stackTrace);
+          throw Exception('Failed to process anime data: $e');
+        } finally {
+          isLoading = false;
         }
-
-        isLoading = false;
       });
-    } catch (e) {
-      print("Error fetching anime data: $e");
-      setState(() => isLoading = false);
+    } catch (e, stackTrace) {
+      ErrorHandler.logError('fetchGenresWithAnime', e, stackTrace);
+      if (mounted) {
+        setState(() => isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error loading anime: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
   Future<void> fetchGenresWithManga() async {
     try {
-      final genreResponse = await Supabase.instance.client.from('tbl_genre').select('*');
-      final mangaResponse = await Supabase.instance.client.from('tbl_manga').select('*, tbl_genre(genre_name)');
+      final genreResponse = await Supabase.instance.client
+          .from('tbl_genre')
+          .select('*')
+          .catchError((e, stackTrace) {
+        throw Exception('Failed to fetch genres: $e');
+      });
+
+      final mangaResponse = await Supabase.instance.client
+          .from('tbl_manga')
+          .select('*, tbl_genre(genre_name)')
+          .catchError((e, stackTrace) {
+        throw Exception('Failed to fetch manga: $e');
+      });
+
+      if (!mounted) return;
 
       setState(() {
-        genres = List<Map<String, dynamic>>.from(genreResponse);
-        mangaByGenre = {};
+        try {
+          genres = List<Map<String, dynamic>>.from(genreResponse);
+          mangaByGenre = {};
 
-        for (var manga in mangaResponse) {
-          String genreName = manga['tbl_genre']['genre_name'] ?? "Unknown";
-          if (!mangaByGenre.containsKey(genreName)) {
-            mangaByGenre[genreName] = [];
+          for (var manga in mangaResponse) {
+            String genreName = manga['tbl_genre']['genre_name'] ?? "Unknown";
+            if (!mangaByGenre.containsKey(genreName)) {
+              mangaByGenre[genreName] = [];
+            }
+            mangaByGenre[genreName]!.add(manga);
           }
-          mangaByGenre[genreName]!.add(manga);
+        } catch (e, stackTrace) {
+          ErrorHandler.logError('setState in fetchGenresWithManga', e, stackTrace);
+          throw Exception('Failed to process manga data: $e');
         }
       });
-    } catch (e) {
-      print("Error fetching manga data: $e");
+    } catch (e, stackTrace) {
+      ErrorHandler.logError('fetchGenresWithManga', e, stackTrace);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error loading manga: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: _buildAppTitle(),
-        centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_outlined, color: AnimeTheme.accentPink),
-            onPressed: () {}
-          ),
-          IconButton(
-            icon: const Icon(Icons.search, color: AnimeTheme.accentPink),
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const SearchScreen()),
+    try {
+      return Scaffold(
+        extendBodyBehindAppBar: true,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          title: _buildAppTitle(),
+          centerTitle: true,
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.notifications_outlined, color: AnimeTheme.accentPink),
+              onPressed: () {}
             ),
+            IconButton(
+              icon: const Icon(Icons.search, color: AnimeTheme.accentPink),
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const SearchScreen()),
+              ),
+            ),
+          ],
+          bottom: TabBar(
+            controller: _tabController,
+            indicatorColor: AnimeTheme.accentPink,
+            labelColor: AnimeTheme.accentPink,
+            unselectedLabelColor: Colors.grey,
+            labelStyle: GoogleFonts.montserrat(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1,
+            ),
+            unselectedLabelStyle: GoogleFonts.montserrat(
+              fontSize: 14,
+              letterSpacing: 1,
+            ),
+            tabs: const [
+              Tab(text: "ANIME"),
+              Tab(text: "MANGA"),
+            ],
           ),
-        ],
-        bottom: TabBar(
+        ),
+        body: TabBarView(
           controller: _tabController,
-          indicatorColor: AnimeTheme.accentPink,
-          labelColor: AnimeTheme.accentPink,
-          unselectedLabelColor: Colors.grey,
-          labelStyle: GoogleFonts.montserrat(
-            fontSize: 14,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 1,
-          ),
-          unselectedLabelStyle: GoogleFonts.montserrat(
-            fontSize: 14,
-            letterSpacing: 1,
-          ),
-          tabs: const [
-            Tab(text: "ANIME"),
-            Tab(text: "MANGA"),
+          children: [
+            _buildAnimeContent(),
+            _buildMangaContent(),
           ],
         ),
-      ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _buildAnimeContent(),
-          _buildMangaContent(),
-        ],
-      ),
-    );
+      );
+    } catch (e, stackTrace) {
+      ErrorHandler.logError('build', e, stackTrace);
+      return const Scaffold(
+        backgroundColor: Colors.black,
+        body: Center(
+          child: Text(
+            'Something went wrong',
+            style: TextStyle(color: Colors.white),
+          ),
+        ),
+      );
+    }
   }
 
   Widget _buildAppTitle() {

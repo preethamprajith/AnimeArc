@@ -20,6 +20,36 @@ class _ComplaintState extends State<Complaint> {
   bool _isLoading = false;
   final supabase = Supabase.instance.client;
   PlatformFile? pickedImage;
+  Map<String, dynamic>? complaintDetails;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchExistingComplaints();
+  }
+
+  Future<void> _fetchExistingComplaints() async {
+    try {
+      final response = await supabase
+          .from('complaints')
+          .select()
+          .eq('user_id', supabase.auth.currentUser!.id)
+          .order('complaint_date', ascending: false)
+          .maybeSingle();
+
+      if (mounted && response != null) {
+        setState(() {
+          complaintDetails = response;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error fetching complaints: $e')),
+        );
+      }
+    }
+  }
 
   Future<void> _pickAndUploadImage() async {
     if (_isLoading) return;
@@ -117,96 +147,155 @@ class _ComplaintState extends State<Complaint> {
       body: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(), // Optimize scrolling
         padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              RepaintBoundary( // Add RepaintBoundary for better performance
-                child: Card(
-                  elevation: 4,
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      children: [
-                        TextFormField(
-                          controller: _titleController,
-                          decoration: const InputDecoration(
-                            labelText: 'Complaint Title',
-                            border: OutlineInputBorder(),
-                          ),
-                          validator: (value) =>
-                              value?.isEmpty ?? true ? 'Please enter a title' : null,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (complaintDetails != null) ...[
+              Card(
+                elevation: 4,
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Previous Complaint Status',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Title: ${complaintDetails!['complaint_title']}',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 4),
+                      Text('Status: ${complaintDetails!['complaint_status']}'),
+                      if (complaintDetails!['complaint_reply'] != null) ...[
+                        const SizedBox(height: 8),
+                        const Text(
+                          'Admin Reply:',
+                          style: TextStyle(fontWeight: FontWeight.bold),
                         ),
-                        const SizedBox(height: 16),
-                        TextFormField(
-                          controller: _contentController,
-                          decoration: const InputDecoration(
-                            labelText: 'Complaint Description',
-                            border: OutlineInputBorder(),
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[200],
+                            borderRadius: BorderRadius.circular(8),
                           ),
-                          maxLines: 5,
-                          validator: (value) =>
-                              value?.isEmpty ?? true ? 'Please enter a description' : null,
+                          child: Text(complaintDetails!['complaint_reply']),
                         ),
                       ],
-                    ),
+                      if (complaintDetails!['complaint_screenshot'] != null) ...[
+                        const SizedBox(height: 8),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.network(
+                            complaintDetails!['complaint_screenshot'],
+                            height: 200,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
               ),
               const SizedBox(height: 16),
-              RepaintBoundary(
-                child: Card(
-                  elevation: 4,
-                  child: InkWell(
-                    onTap: _isLoading ? null : _pickAndUploadImage,
-                    child: Container(
-                      height: 200,
-                      padding: const EdgeInsets.all(16),
-                      child: _selectedImage != null
-                          ? Stack(
-                              alignment: Alignment.center,
-                              children: [
-                                Image.file(
-                                  _selectedImage!,
-                                  fit: BoxFit.cover,
-                                  cacheWidth: 800, // Optimize image loading
-                                  cacheHeight: 600,
-                                ),
-                                if (_isLoading)
-                                  Container(
-                                    color: Colors.black45,
-                                    child: const CircularProgressIndicator(),
-                                  ),
-                              ],
-                            )
-                          : const Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.cloud_upload, size: 50),
-                                Text('Tap to upload screenshot'),
-                              ],
+              const Divider(),
+              const SizedBox(height: 16),
+            ],
+            Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  RepaintBoundary( // Add RepaintBoundary for better performance
+                    child: Card(
+                      elevation: 4,
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                          children: [
+                            TextFormField(
+                              controller: _titleController,
+                              decoration: const InputDecoration(
+                                labelText: 'Complaint Title',
+                                border: OutlineInputBorder(),
+                              ),
+                              validator: (value) =>
+                                  value?.isEmpty ?? true ? 'Please enter a title' : null,
                             ),
+                            const SizedBox(height: 16),
+                            TextFormField(
+                              controller: _contentController,
+                              decoration: const InputDecoration(
+                                labelText: 'Complaint Description',
+                                border: OutlineInputBorder(),
+                              ),
+                              maxLines: 5,
+                              validator: (value) =>
+                                  value?.isEmpty ?? true ? 'Please enter a description' : null,
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
-                ),
+                  const SizedBox(height: 16),
+                  RepaintBoundary(
+                    child: Card(
+                      elevation: 4,
+                      child: InkWell(
+                        onTap: _isLoading ? null : _pickAndUploadImage,
+                        child: Container(
+                          height: 200,
+                          padding: const EdgeInsets.all(16),
+                          child: _selectedImage != null
+                              ? Stack(
+                                  alignment: Alignment.center,
+                                  children: [
+                                    Image.file(
+                                      _selectedImage!,
+                                      fit: BoxFit.cover,
+                                      cacheWidth: 800, // Optimize image loading
+                                      cacheHeight: 600,
+                                    ),
+                                    if (_isLoading)
+                                      Container(
+                                        color: Colors.black45,
+                                        child: const CircularProgressIndicator(),
+                                      ),
+                                  ],
+                                )
+                              : const Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.cloud_upload, size: 50),
+                                    Text('Tap to upload screenshot'),
+                                  ],
+                                ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  ElevatedButton(
+                    onPressed: _isLoading ? null : _submitComplaint,
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                    child: _isLoading
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Text('Submit Complaint'),
+                  ),
+                ],
               ),
-              const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: _isLoading ? null : _submitComplaint,
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                ),
-                child: _isLoading
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Text('Submit Complaint'),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
