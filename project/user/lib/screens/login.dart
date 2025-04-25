@@ -14,22 +14,33 @@ class Login extends StatefulWidget {
 class _LoginState extends State<Login> {
   final TextEditingController _orguseremailController = TextEditingController();
   final TextEditingController _orguserpassController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
 
   Future<void> login() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
     try {
       await supabase.auth.signInWithPassword(
-        email: _orguseremailController.text,
+        email: _orguseremailController.text.trim(),
         password: _orguserpassController.text,
       );
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => Dashboard()),
-      );
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => Dashboard()),
+        );
+      }
     } catch (e) {
-      print("Error during login: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Login failed: ${e.toString()}")),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Login failed: ${e.toString()}"),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -58,135 +69,106 @@ class _LoginState extends State<Login> {
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 30.0),
               child: SingleChildScrollView(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // Anime character in circle
-                    _buildAnimeHeader(),
-                    const SizedBox(height: 15),
-                    
-                    // Stylized app name
-                    _buildStylizedAppName(),
-                    const SizedBox(height: 10),
-                    
-                    // Tagline
-                    Text(
-                      "Your ultimate anime streaming experience",
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.poppins(
-                        color: Colors.white.withOpacity(0.7),
-                        fontSize: 14,
-                        letterSpacing: 0.5,
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // Anime character in circle
+                      _buildAnimeHeader(),
+                      const SizedBox(height: 15),
+                      
+                      // Stylized app name
+                      _buildStylizedAppName(),
+                      const SizedBox(height: 10),
+                      
+                      // Tagline
+                      Text(
+                        "Your ultimate anime streaming experience",
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.poppins(
+                          color: Colors.white.withOpacity(0.7),
+                          fontSize: 14,
+                          letterSpacing: 0.5,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 40),
+                      const SizedBox(height: 40),
 
-                    // Email Field
-                    _buildTextField(
-                      controller: _orguseremailController,
-                      hintText: 'Email',
-                      obscureText: false,
-                    ),
-                    const SizedBox(height: 16),
+                      // Email Field
+                      _buildTextField(
+                        controller: _orguseremailController,
+                        hintText: 'Email',
+                        obscureText: false,
+                      ),
+                      const SizedBox(height: 16),
 
-                    // Password Field
-                    _buildTextField(
-                      pass: true,
-                      controller: _orguserpassController,
-                      hintText: 'Password',
-                      obscureText: _obscurePassword,
-                      toggleObscure: () {
-                        setState(() {
-                          _obscurePassword = !_obscurePassword;
-                        });
-                      },
-                    ),
-
-                    const SizedBox(height: 12),
-
-                    // Forgot Password
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton(
-                        onPressed: () {
-                          // Handle forgot password logic
+                      // Password Field
+                      _buildTextField(
+                        pass: true,
+                        controller: _orguserpassController,
+                        hintText: 'Password',
+                        obscureText: _obscurePassword,
+                        toggleObscure: () {
+                          setState(() {
+                            _obscurePassword = !_obscurePassword;
+                          });
                         },
-                        style: TextButton.styleFrom(
-                          padding: EdgeInsets.zero,
-                          minimumSize: const Size(0, 30),
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        ),
-                        child: Text(
-                          "Forgot password?",
-                          style: GoogleFonts.poppins(
-                            color: Colors.white70,
-                            fontSize: 12,
-                          ),
-                        ),
                       ),
-                    ),
-                    
-                    const SizedBox(height: 25),
 
-                    // Login Button
-                    _buildGradientButton(
-                      label: "Login",
-                      onPressed: login,
-                    ),
+                      const SizedBox(height: 12),
 
-                    const SizedBox(height: 20),
-                    
-                    // Register prompt
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          "Don't have an account? ",
-                          style: GoogleFonts.poppins(
-                            color: Colors.white70,
-                            fontSize: 14,
-                          ),
-                        ),
-                        GestureDetector(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (context) => const RegisterPage()),
-                            );
-                          },
-                          child: Text(
-                            "Register",
+                      // Forgot Password
+                      Align(
+                        alignment: Alignment.centerRight,
+                        
+                        
+                      ),
+                      
+                      const SizedBox(height: 25),
+
+                      // Login Button
+                      _buildGradientButton(
+                        label: "Login",
+                        onPressed: login,
+                      ),
+
+                      const SizedBox(height: 20),
+                      
+                      // Register prompt
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            "Don't have an account? ",
                             style: GoogleFonts.poppins(
-                              color: const Color(0xFFE991FF),
-                              fontWeight: FontWeight.bold,
+                              color: Colors.white70,
                               fontSize: 14,
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                    
-                    // Footer text
-                    TextButton(
-                      onPressed: () {
-                        // Navigate to catalog
-                      },
-                      style: TextButton.styleFrom(
-                        padding: EdgeInsets.zero,
-                        minimumSize: const Size(0, 30),
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) => const RegisterPage()),
+                              );
+                            },
+                            child: Text(
+                              "Register",
+                              style: GoogleFonts.poppins(
+                                color: const Color(0xFFE991FF),
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                      child: Text(
-                        "Explore Catalog",
-                        style: GoogleFonts.poppins(
-                          color: Colors.white.withOpacity(0.6),
-                          fontSize: 13,
-                          letterSpacing: 1.0,
-                        ),
-                      ),
-                    ),
-                  ],
+                      const SizedBox(height: 20),
+                      
+                      // Footer text
+                      
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -211,8 +193,9 @@ class _LoginState extends State<Login> {
           ),
         ],
         image: const DecorationImage(
-          image: AssetImage('123.png'),
+          image: AssetImage('assets/123.png'),  // Updated path
           fit: BoxFit.cover,
+          // Removed errorBuilder as it is not supported by DecorationImage
         ),
       ),
     );
@@ -268,11 +251,32 @@ class _LoginState extends State<Login> {
           color: Colors.white,
           fontSize: 14,
         ),
+        validator: (value) {
+          if (value == null || value.isEmpty) {
+            return 'Please enter your ${hintText.toLowerCase()}';
+          }
+          if (hintText.toLowerCase() == 'email') {
+            final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+            if (!emailRegex.hasMatch(value)) {
+              return 'Please enter a valid email';
+            }
+          }
+          if (hintText.toLowerCase() == 'password') {
+            if (value.length < 6) {
+              return 'Password must be at least 6 characters';
+            }
+          }
+          return null;
+        },
         decoration: InputDecoration(
           hintText: hintText,
           hintStyle: GoogleFonts.poppins(
             color: Colors.white60,
             fontSize: 14,
+          ),
+          errorStyle: GoogleFonts.poppins(
+            color: Colors.red[300],
+            fontSize: 12,
           ),
           contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
           border: InputBorder.none,

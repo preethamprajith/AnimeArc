@@ -692,30 +692,104 @@ class _ManageVolumeState extends State<ManageVolume> {
   }
 
   Future<void> _deleteChapter(int chapterId) async {
-    try {
-      await Supabase.instance.client
-          .from('tbl_mangafile')
-          .delete()
-          .eq('mangafile_id', chapterId);
-      
-      await _fetchChapters();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Chapter deleted successfully'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error deleting chapter: ${e.toString()}'),
+  // Show confirmation dialog first
+  final bool? confirm = await showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      backgroundColor: const Color.fromARGB(255, 43, 43, 43),
+      title: const Text('Delete Chapter', style: TextStyle(color: Colors.white)),
+      content: const Text(
+        'This will delete all pages associated with this chapter. Are you sure?',
+        style: TextStyle(color: Colors.white70),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(false),
+          child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+        ),
+        ElevatedButton(
+          onPressed: () => Navigator.of(context).pop(true),
+          style: ElevatedButton.styleFrom(
             backgroundColor: Colors.red,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
           ),
-        );
+          child: const Text('Delete', style: TextStyle(color: Colors.white)),
+        ),
+      ],
+    ),
+  );
+
+  if (confirm != true) return;
+
+  try {
+    final supabase = Supabase.instance.client;
+
+    // 1. First get all pages to delete their images
+    final pages = await supabase
+        .from('tbl_mangapage')
+        .select('mangapage_file')
+        .eq('mangafile_id', chapterId);
+
+    // 2. Delete all pages from storage
+    for (final page in pages) {
+      try {
+        final String fileUrl = page['mangapage_file'];
+        final String filePath = fileUrl.split('/').last;
+        await supabase.storage.from('manga').remove(['manga_pages/$filePath']);
+      } catch (e) {
+        print('Error deleting page file: $e');
       }
     }
+
+    // 3. Delete chapter cover image
+    final chapter = await supabase
+        .from('tbl_mangafile')
+        .select('chapter_file')
+        .eq('mangafile_id', chapterId)
+        .single();
+    
+    try {
+      final String coverUrl = chapter['chapter_file'];
+      final String coverPath = coverUrl.split('/').last;
+      await supabase.storage.from('manga').remove(['manga_chapters/$coverPath']);
+    } catch (e) {
+      print('Error deleting chapter cover: $e');
+    }
+
+    // 4. Delete all pages from database
+    await supabase
+        .from('tbl_mangapage')
+        .delete()
+        .eq('mangafile_id', chapterId);
+
+    // 5. Finally delete the chapter
+    await supabase
+        .from('tbl_mangafile')
+        .delete()
+        .eq('mangafile_id', chapterId);
+
+    await _fetchChapters();
+    
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Chapter and all associated pages deleted successfully'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
+  } catch (e) {
+    print('Error in deletion process: $e');
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error deleting chapter: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
+}
 }

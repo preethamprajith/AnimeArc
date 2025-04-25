@@ -16,6 +16,7 @@ class _ManageAnimeState extends State<ManageAnime> {
   List<Map<String, dynamic>> animeList = [];
   List<Map<String, dynamic>> genreList = [];
   final TextEditingController animeController = TextEditingController();
+  final TextEditingController descriptionController = TextEditingController(); // Add this line
   String? _selectedGenre;
   PlatformFile? pickedImage;
   bool _isLoading = false;
@@ -75,10 +76,12 @@ class _ManageAnimeState extends State<ManageAnime> {
       String? posterUrl = await uploadPoster();
       await Supabase.instance.client.from('tbl_anime').insert({
         'anime_name': animeController.text,
+        'anime_description': descriptionController.text, // Add this line
         'genre_id': _selectedGenre,
         'anime_poster': posterUrl,
       });
       animeController.clear();
+      descriptionController.clear(); // Add this line
       pickedImage = null;
       fetchAnime();
     } catch (e) {
@@ -104,11 +107,152 @@ class _ManageAnimeState extends State<ManageAnime> {
   }
 
   Future<void> deleteAnime(int animeId) async {
+    // Show confirmation dialog first
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Anime'),
+        content: const Text('This will delete all episodes and related data. Are you sure?'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: const Text(
+              'Delete',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
     try {
-      await Supabase.instance.client.from('tbl_anime').delete().eq('anime_id', animeId);
-      fetchAnime();
+      setState(() => _isLoading = true);
+      final supabase = Supabase.instance.client;
+
+      // 1. Get anime details for poster deletion
+      final anime = await supabase
+          .from('tbl_anime')
+          .select('anime_poster')
+          .eq('anime_id', animeId)
+          .single();
+
+      // 2. Get all episodes to delete their files
+      final episodes = await supabase
+          .from('tbl_animefile')
+          .select('animefile_file') // Changed from animefile_video to animefile_file
+          .eq('anime_id', animeId);
+
+      // 3. Delete episode files from storage
+      for (final episode in episodes) {
+        if (episode['animefile_file'] != null) { // Changed from animefile_video to animefile_file
+          try {
+            final videoPath = episode['animefile_file'].toString().split('/').last; // Changed from animefile_video to animefile_file
+            await supabase.storage.from('anime').remove(['anime_videos/$videoPath']); // Updated storage path
+          } catch (e) {
+            print('Error deleting episode file: $e');
+          }
+        }
+      }
+
+      // 4. Delete anime poster from storage
+      if (anime['anime_poster'] != null) {
+        try {
+          final posterPath = anime['anime_poster'].toString().split('/').last;
+          await supabase.storage.from('anime').remove([posterPath]);
+        } catch (e) {
+          print('Error deleting poster: $e');
+        }
+      }
+
+      // 5. Get all products related to this anime
+      final products = await supabase
+          .from('tbl_product')
+          .select('product_id')
+          .eq('anime_id', animeId);
+
+      // 6. For each product, delete related records in order
+      for (final product in products) {
+        final productId = product['product_id'];
+        
+        // Delete from cart first
+        await supabase
+            .from('tbl_cart')
+            .delete()
+            .eq('product_id', productId);
+        
+        // Delete from stock
+        await supabase
+            .from('tbl_stock')
+            .delete()
+            .eq('product_id', productId);
+      }
+
+      // 7. Now delete all products related to this anime
+      await supabase
+          .from('tbl_product')
+          .delete()
+          .eq('anime_id', animeId);
+
+      // 8. Delete from tbl_review
+      await supabase
+          .from('tbl_review')
+          .delete()
+          .eq('anime_id', animeId);
+
+      // 9. Delete from tbl_watchlist
+      await supabase
+          .from('tbl_watchlist')
+          .delete()
+          .eq('anime_id', animeId);
+
+      // 10. Delete all episodes
+      await supabase
+          .from('tbl_animefile')
+          .delete()
+          .eq('anime_id', animeId);
+
+      // 11. Finally delete the anime
+      await supabase
+          .from('tbl_anime')
+          .delete()
+          .eq('anime_id', animeId);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Anime deleted successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        await fetchAnime(); // Refresh the list
+      }
     } catch (e) {
-      print("Error deleting anime: $e");
+      print('Error deleting anime: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error deleting anime: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -152,6 +296,17 @@ class _ManageAnimeState extends State<ManageAnime> {
                   TextField(
                     controller: animeController,
                     decoration: InputDecoration(labelText: "Anime Name", border: OutlineInputBorder(borderRadius: BorderRadius.circular(8))),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField( // Add this TextField
+                    controller: descriptionController,
+                    maxLines: 3, // Allow multiple lines for description
+                    decoration: InputDecoration(
+                      labelText: "Anime Description",
+                      hintText: "Enter anime description...",
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                      alignLabelWithHint: true, // Aligns label with the hint and text
+                    ),
                   ),
                   const SizedBox(height: 12),
                   InkWell(
@@ -208,5 +363,12 @@ class _ManageAnimeState extends State<ManageAnime> {
         ),
       ],
     );
+  }
+
+  @override
+  void dispose() {
+    animeController.dispose();
+    descriptionController.dispose(); // Add this line
+    super.dispose();
   }
 }

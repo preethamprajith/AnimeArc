@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:user/screens/cart.dart';
 import 'package:user/screens/productpage.dart';
+import 'dart:async';
 
 class Store extends StatefulWidget {
   const Store({super.key});
@@ -21,6 +22,11 @@ class _StoreState extends State<Store> {
     fetchProducts();
   }
 
+  @override
+  void dispose() {
+    super.dispose();
+  }
+
   Future<void> fetchProducts() async {
     try {
       final response = await supabase
@@ -32,17 +38,55 @@ class _StoreState extends State<Store> {
             )
           ''')
           .order('product_id');
-      
-      setState(() {
-        merchandise = List<Map<String, dynamic>>.from(response);
-        isLoading = false;
-      });
+
+      List<Map<String, dynamic>> productsWithStock = [];
+
+      // Process each product and its stock
+      for (var product in response) {
+        final stockDataList = product['tbl_stock'] as List?;
+        int totalStockQty = 0;
+
+        // Sum up all stock quantities for this product
+        if (stockDataList != null && stockDataList.isNotEmpty) {
+          for (var stockData in stockDataList) {
+            // Parse stock quantity and handle negative values
+            final qty = int.tryParse(stockData['stock_qty'].toString()) ?? 0;
+            if (qty > 0) { // Only add positive stock quantities
+              totalStockQty += qty;
+            }
+          }
+        }
+
+        // Create a new map with total stock quantity
+        final productWithStock = Map<String, dynamic>.from(product);
+        productWithStock['stock_quantity'] = totalStockQty;
+        productsWithStock.add(productWithStock);
+
+        // Debug print to check stock calculations
+        print('Product: ${product['product_name']}, Total Stock: $totalStockQty');
+      }
+
+      if (mounted) {
+        setState(() {
+          merchandise = productsWithStock;
+          isLoading = false;
+        });
+      }
     } catch (e) {
       print('Error fetching products: $e');
-      setState(() {
-        isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
     }
+  }
+
+  Future<void> refreshProducts() async {
+    setState(() {
+      isLoading = true;
+    });
+    await fetchProducts();
   }
 
   @override
@@ -95,6 +139,11 @@ class _StoreState extends State<Store> {
             ],
           ),
         ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: refreshProducts,
+        backgroundColor: const Color(0xFF4A1A70),
+        child: const Icon(Icons.refresh),
       ),
     );
   }
@@ -156,21 +205,17 @@ class _StoreState extends State<Store> {
   }
 
   Widget _buildMerchCard(Map<String, dynamic> item) {
-    // Get stock quantity from the joined table
-    final stockData = item['tbl_stock'] as List?;
-    final inStock = stockData != null && 
-                   stockData.isNotEmpty && 
-                   (stockData[0]['stock_qty'] ?? 0) > 0;
+    final stockQty = item['stock_quantity'] ?? 0;
+    final inStock = stockQty > 0;
 
     return GestureDetector(
       onTap: () {
         if (!inStock) {
-          // Show out of stock message
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: const Text(
-                'This product is currently out of stock',
-                style: TextStyle(color: Colors.white),
+              content: Text(
+                'This product is currently out of stock (Available: $stockQty)',
+                style: const TextStyle(color: Colors.white),
               ),
               backgroundColor: Colors.red,
               duration: const Duration(seconds: 2),

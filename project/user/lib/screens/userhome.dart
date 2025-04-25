@@ -78,12 +78,15 @@ class _UserhomeState extends State<Userhome> with SingleTickerProviderStateMixin
           genres = List<Map<String, dynamic>>.from(genreResponse);
           animeByGenre = {};
 
+          // Filter out invalid entries
           for (var anime in animeResponse) {
-            String genreName = anime['tbl_genre']['genre_name'] ?? "Unknown";
-            if (!animeByGenre.containsKey(genreName)) {
-              animeByGenre[genreName] = [];
+            if (anime['anime_id'] != null) {  // Only add if ID exists
+              String genreName = anime['tbl_genre']['genre_name'] ?? "Unknown";
+              if (!animeByGenre.containsKey(genreName)) {
+                animeByGenre[genreName] = [];
+              }
+              animeByGenre[genreName]!.add(anime);
             }
-            animeByGenre[genreName]!.add(anime);
           }
         } catch (e, stackTrace) {
           ErrorHandler.logError('setState in fetchGenresWithAnime', e, stackTrace);
@@ -316,18 +319,57 @@ class _UserhomeState extends State<Userhome> with SingleTickerProviderStateMixin
   }
 
   Widget _buildAnimeCard(Map<String, dynamic> anime) {
+    // Validate required data exists
+    if (anime['anime_id'] == null || anime['anime_name'] == null) {
+      ErrorHandler.logError(
+        '_buildAnimeCard',
+        'Invalid anime data: ${anime.toString()}',
+        StackTrace.current
+      );
+      return const SizedBox.shrink();
+    }
+  
     return GestureDetector(
-      onTap: () => Navigator.push(
-        context, 
-        MaterialPageRoute(builder: (context) => Animedetails(animeId: anime['anime_id']))
-      ),
-      behavior: HitTestBehavior.opaque,
+      onTap: () async {
+        try {
+          // Validate data before navigation
+          final response = await supabase
+              .from('tbl_anime')
+              .select()
+              .eq('anime_id', anime['anime_id'])
+              .single();
+              
+          if (response != null && mounted) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => Animedetails(
+                  animeId: anime['anime_id'],
+                ),
+              ),
+            );
+          } else {
+            throw Exception('Anime not found');
+          }
+        } catch (e, stackTrace) {
+          ErrorHandler.logError('_buildAnimeCard navigation', e, stackTrace);
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Could not load anime details: ${e.toString()}'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
+      },
       child: Padding(
         padding: const EdgeInsets.only(right: 12.0),
         child: Container(
           width: 150,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(15),
+            color: Colors.grey[900],
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(0.4),
@@ -339,7 +381,6 @@ class _UserhomeState extends State<Userhome> with SingleTickerProviderStateMixin
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Image
               ClipRRect(
                 borderRadius: BorderRadius.circular(15),
                 child: Image.network(
@@ -347,10 +388,22 @@ class _UserhomeState extends State<Userhome> with SingleTickerProviderStateMixin
                   width: 150,
                   height: 180,
                   fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    ErrorHandler.logError('Image loading', error, stackTrace);
+                    return Container(
+                      width: 150,
+                      height: 180,
+                      color: Colors.grey[850],
+                      child: const Icon(
+                        Icons.error_outline,
+                        color: Colors.white54,
+                        size: 32,
+                      ),
+                    );
+                  },
                 ),
               ),
               const SizedBox(height: 8),
-              // Title
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 6),
                 child: Text(

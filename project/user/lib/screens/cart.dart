@@ -37,7 +37,6 @@ class CartState extends State<Cart> {
       }
 
       int bookingId = booking['booking_id'];
-      print(bookingId);
       setState(() => bid = bookingId);
 
       final cartResponse = await supabase
@@ -45,14 +44,15 @@ class CartState extends State<Cart> {
           .select()
           .eq('booking_id', bookingId)
           .eq('cart_status', '0');
-        print(cartResponse);
 
       List<Map<String, dynamic>> items = [];
 
       for (var cartItem in cartResponse) {
+        // Get product details and all stock entries
         final itemResponse = await supabase
             .from('tbl_product')
             .select('''
+              product_id,
               product_name, 
               product_image, 
               product_price,
@@ -61,33 +61,48 @@ class CartState extends State<Cart> {
               )
             ''')
             .eq('product_id', cartItem['product_id'])
-            .maybeSingle();
+            .single();
 
         if (itemResponse != null) {
-          final stockData = itemResponse['tbl_stock'] as List?;
-          final stockQty = stockData != null && stockData.isNotEmpty 
-              ? int.tryParse(stockData[0]['stock_qty'].toString()) ?? 0 
-              : 0;
-          final inStock = stockQty > 0;
+          // Calculate total stock
+          final stockDataList = itemResponse['tbl_stock'] as List?;
+          int totalStockQty = 0;
 
+          if (stockDataList != null && stockDataList.isNotEmpty) {
+            for (var stockData in stockDataList) {
+              final qty = int.tryParse(stockData['stock_qty'].toString()) ?? 0;
+              totalStockQty += qty;
+            }
+          }
+
+          // Add item with total stock quantity
           items.add({
             "cart_id": cartItem['cart_id'],
+            "product_id": itemResponse['product_id'],
             "name": itemResponse['product_name'],
             "image": itemResponse['product_image'],
             "price": double.tryParse(itemResponse['product_price'] ?? '0') ?? 0.0,
             "quantity": int.tryParse(cartItem['cart_qty'] ?? '0') ?? 0,
-            "inStock": inStock,
-            "stockQty": stockQty,
+            "inStock": totalStockQty > 0,
+            "stockQty": totalStockQty,
           });
+
+          // Debug print
+          print('Product: ${itemResponse['product_name']}, Total Stock: $totalStockQty');
         }
       }
 
-      setState(() {
-        cartItems = items;
-        isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          cartItems = items;
+          isLoading = false;
+        });
+      }
     } catch (e) {
-      setState(() => isLoading = false);
+      print('Error fetching cart items: $e');
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
     }
   }
 

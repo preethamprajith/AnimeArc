@@ -28,11 +28,18 @@ class _AnimedetailsState extends State<Animedetails> with SingleTickerProviderSt
   bool isInWatchlist = false;
   final supabase = Supabase.instance.client;
 
+  final TextEditingController _reviewController = TextEditingController();
+  double _rating = 0;
+  List<Map<String, dynamic>> reviews = [];
+  bool isReviewSubmitting = false;
+  bool hasUserReviewed = false;
+
   @override
   void initState() {
     super.initState();
     fetchAnimeDetails();
     checkWatchlistStatus();
+    fetchReviews();
   }
 
   @override
@@ -40,46 +47,60 @@ class _AnimedetailsState extends State<Animedetails> with SingleTickerProviderSt
     _tabController.dispose();
     _videoPlayerController?.dispose();
     _chewieController?.dispose();
+    _reviewController.dispose();
     super.dispose();
   }
 
   Future<void> fetchAnimeDetails() async {
     try {
-      // Fetch anime details
-      final animeResponse = await Supabase.instance.client
+      final animeResponse = await supabase
           .from('tbl_anime')
           .select('*, tbl_genre(genre_name)')
           .eq('anime_id', widget.animeId)
           .single();
 
-      // Fetch anime files
-      final animeFiles = await Supabase.instance.client
+      final animeFiles = await supabase
           .from('tbl_animefile')
           .select()
           .eq('anime_id', widget.animeId);
 
-      // Organize episodes by season
+      if (!mounted) return;
+
       final Map<int, List<Map<String, dynamic>>> tempSeasonEpisodes = {};
-      for (var file in animeFiles) {
-        final season = int.parse(file['animefile_season']);
-        if (!tempSeasonEpisodes.containsKey(season)) {
-          tempSeasonEpisodes[season] = [];
+      
+      if (animeFiles != null) {
+        for (var file in animeFiles) {
+          final season = int.tryParse(file['animefile_season']?.toString() ?? '') ?? 1;
+          if (!tempSeasonEpisodes.containsKey(season)) {
+            tempSeasonEpisodes[season] = [];
+          }
+          tempSeasonEpisodes[season]!.add(file);
         }
-        tempSeasonEpisodes[season]!.add(file);
       }
 
       setState(() {
         animeDetails = animeResponse;
         seasonEpisodes = tempSeasonEpisodes;
-        _tabController = TabController(
-          length: seasonEpisodes.length,
-          vsync: this,
-        );
+        if (tempSeasonEpisodes.isNotEmpty) {
+          _tabController = TabController(
+            length: tempSeasonEpisodes.length,
+            vsync: this,
+          );
+        }
         isLoading = false;
       });
-    } catch (e) {
+    } catch (e, stackTrace) {
       print('Error fetching anime details: $e');
-      setState(() => isLoading = false);
+      print('Stack trace: $stackTrace');
+      if (mounted) {
+        setState(() => isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error loading anime: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -173,6 +194,228 @@ class _AnimedetailsState extends State<Animedetails> with SingleTickerProviderSt
         SnackBar(content: Text('Error: ${e.toString()}')),
       );
     }
+  }
+
+  Future<void> fetchReviews() async {
+    try {
+      final response = await supabase
+          .from('tbl_review')
+          .select('*, profiles:user_id(*)')
+          .eq('anime_id', widget.animeId)
+          .order('review_date', ascending: false);
+
+      final user = supabase.auth.currentUser;
+      if (mounted) {
+        setState(() {
+          reviews = List<Map<String, dynamic>>.from(response);
+          // Check if current user has already reviewed
+          hasUserReviewed = user != null && 
+              reviews.any((review) => review['user_id'] == user.id);
+        });
+      }
+    } catch (e) {
+      print('Error fetching reviews: $e');
+    }
+  }
+
+  Future<void> submitReview() async {
+    if (hasUserReviewed) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('You have already reviewed this anime'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (_reviewController.text.trim().isEmpty || _rating == 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please add both rating and review')),
+      );
+      return;
+    }
+
+    setState(() => isReviewSubmitting = true);
+
+    try {
+      final user = supabase.auth.currentUser;
+      if (user == null) {
+        throw Exception('Must be logged in to review');
+      }
+
+      await supabase.from('tbl_review').insert({
+        'review_rating': _rating.toString(),
+        'review_content': _reviewController.text.trim(),
+        'review_date': DateTime.now().toIso8601String(),
+        'user_id': user.id,
+        'anime_id': widget.animeId,
+      });
+
+      _reviewController.clear();
+      setState(() => _rating = 0);
+      await fetchReviews();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Review submitted successfully!')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error submitting review: $e')),
+      );
+    } finally {
+      setState(() => isReviewSubmitting = false);
+    }
+  }
+
+  Widget _buildReviewSection() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: kDarkPurple,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: kLightPurple.withOpacity(0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (!hasUserReviewed) ...[
+            Text(
+              'Write a Review',
+              style: GoogleFonts.poppins(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: List.generate(5, (index) {
+                return IconButton(
+                  icon: Icon(
+                    index < _rating ? Icons.star : Icons.star_border,
+                    color: kLightPurple,
+                    size: 32,
+                  ),
+                  onPressed: () {
+                    setState(() => _rating = index + 1);
+                  },
+                );
+              }),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _reviewController,
+              style: GoogleFonts.poppins(color: Colors.white),
+              maxLines: 3,
+              decoration: InputDecoration(
+                hintText: 'Share your thoughts...',
+                hintStyle: GoogleFonts.poppins(color: Colors.white54),
+                filled: true,
+                fillColor: kDeepPurple,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: kLightPurple.withOpacity(0.3)),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: kLightPurple.withOpacity(0.3)),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: isReviewSubmitting ? null : submitReview,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: kLightPurple,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: isReviewSubmitting
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                      )
+                    : Text(
+                        'Submit Review',
+                        style: GoogleFonts.poppins(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+              ),
+            ),
+          ],
+          if (reviews.isNotEmpty) ...[
+            const SizedBox(height: 24),
+            Text(
+              'Reviews',
+              style: GoogleFonts.poppins(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 12),
+            ...reviews.map((review) => Container(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: kDeepPurple,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: kLightPurple.withOpacity(0.2)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          ...List.generate(
+                            5,
+                            (index) => Icon(
+                              index < double.parse(review['review_rating']) 
+                                  ? Icons.star 
+                                  : Icons.star_border,
+                              color: kLightPurple,
+                              size: 16,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            DateTime.parse(review['review_date'])
+                                .toLocal()
+                                .toString()
+                                .split(' ')[0],
+                            style: GoogleFonts.poppins(
+                              color: Colors.white54,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        review['review_content'],
+                        style: GoogleFonts.poppins(
+                          color: Colors.white,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                )),
+          ],
+        ],
+      ),
+    );
   }
 
   @override
@@ -357,111 +600,135 @@ class _AnimedetailsState extends State<Animedetails> with SingleTickerProviderSt
                             ),
                           ),
                         ),
+                      const SizedBox(height: 24),
+                      _buildReviewSection(),
                     ],
                   ),
                 ),
               ),
             ),
           ),
-          SliverPersistentHeader(
-            delegate: _SliverAppBarDelegate(
-              TabBar(
-                controller: _tabController,
-                isScrollable: true,
-                tabs: seasonEpisodes.keys
-                    .map((season) => Tab(
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 8,
-                            ),
-                            decoration: BoxDecoration(
-                              border: Border.all(
-                                color: kLightPurple.withOpacity(0.3),
+          if (seasonEpisodes.isNotEmpty) ...[
+            SliverPersistentHeader(
+              delegate: _SliverAppBarDelegate(
+                TabBar(
+                  controller: _tabController,
+                  isScrollable: true,
+                  tabs: seasonEpisodes.keys
+                      .map((season) => Tab(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 8,
                               ),
-                              borderRadius: BorderRadius.circular(20),
+                              decoration: BoxDecoration(
+                                border: Border.all(
+                                  color: kLightPurple.withOpacity(0.3),
+                                ),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text('Season $season'),
                             ),
-                            child: Text('Season $season'),
-                          ),
-                        ))
-                    .toList(),
-                indicatorSize: TabBarIndicatorSize.label,
-                indicatorColor: kLightPurple,
-                labelColor: kLightPurple,
-                unselectedLabelColor: Colors.grey,
+                          ))
+                      .toList(),
+                  indicatorSize: TabBarIndicatorSize.label,
+                  indicatorColor: kLightPurple,
+                  labelColor: kLightPurple,
+                  unselectedLabelColor: Colors.grey,
+                ),
               ),
+              pinned: true,
             ),
-            pinned: true,
-          ),
-          SliverPadding(
-            padding: const EdgeInsets.all(16),
-            sliver: SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  final episodes = seasonEpisodes[seasonEpisodes.keys.elementAt(_tabController.index)]!;
-                  final episode = episodes[index];
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          kDarkPurple,
-                          kDeepPurple,
+            SliverPadding(
+              padding: const EdgeInsets.all(16),
+              sliver: SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) {
+                    final currentSeason = seasonEpisodes.keys.elementAt(_tabController.index);
+                    final episodes = seasonEpisodes[currentSeason] ?? [];
+                    
+                    if (index >= episodes.length) {
+                      return null;
+                    }
+
+                    final episode = episodes[index];
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [kDarkPurple, kDeepPurple],
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: kLightPurple.withOpacity(0.2)),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black12,
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
+                          ),
                         ],
                       ),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: kLightPurple.withOpacity(0.2),
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black12,
-                          blurRadius: 8,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: ListTile(
-                      contentPadding: const EdgeInsets.all(12),
-                      leading: Container(
-                        width: 48,
-                        height: 48,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [kLightPurple, kPrimaryPurple],
+                      child: ListTile(
+                        contentPadding: const EdgeInsets.all(12),
+                        leading: Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [kLightPurple, kPrimaryPurple],
+                            ),
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Center(
-                          child: Text(
-                            episode['animefile_episode'].toString(),
-                            style: GoogleFonts.poppins(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
+                          child: Center(
+                            child: Text(
+                              episode['animefile_episode']?.toString() ?? '?',
+                              style: GoogleFonts.poppins(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                      title: Text(
-                        'Episode ${episode['animefile_episode']}',
-                        style: GoogleFonts.poppins(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
+                        title: Text(
+                          'Episode ${episode['animefile_episode'] ?? "Unknown"}',
+                          style: GoogleFonts.poppins(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
+                        trailing: Icon(
+                          Icons.play_circle_outline,
+                          color: kLightPurple,
+                          size: 32,
+                        ),
+                        onTap: () {
+                          if (episode['animefile_file'] != null) {
+                            initializeVideo(episode['animefile_file']);
+                          }
+                        },
                       ),
-                      trailing: Icon(
-                        Icons.play_circle_outline,
-                        color: kLightPurple,
-                        size: 32,
-                      ),
-                      onTap: () => initializeVideo(episode['animefile_file']),
-                    ),
-                  );
-                },
-                childCount: seasonEpisodes[seasonEpisodes.keys.elementAt(_tabController.index)]?.length ?? 0,
+                    );
+                  },
+                  childCount: seasonEpisodes[seasonEpisodes.keys.elementAt(_tabController.index)]?.length ?? 0,
+                ),
               ),
             ),
-          ),
+          ] else ...[
+            SliverToBoxAdapter(
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Text(
+                    'No episodes available',
+                    style: GoogleFonts.poppins(
+                      color: Colors.white70,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );

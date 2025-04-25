@@ -511,33 +511,17 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
   }
 
   Future<void> _showReviewDialog(Map<String, dynamic> item) async {
-    // Check if we have the product data
     final productData = item['tbl_product'];
-    if (productData == null) {
+    if (productData == null || productData['product_id'] == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Product information not found')),
       );
       return;
     }
 
-    final productId = productData['product_id'];
-    if (productId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Product ID not found')),
-      );
-      return;
-    }
-
-    // Check if user has already reviewed this product
     try {
-      final response = await supabase
-          .from('tbl_review')
-          .select('review_id')
-          .eq('product_id', productId)
-          .eq('user_id', supabase.auth.currentUser!.id)
-          .limit(1);
-
-      if (response.isNotEmpty) {
+      final hasReviewed = await _hasUserReviewed(productData['product_id']);
+      if (hasReviewed) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -548,81 +532,159 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
         }
         return;
       }
-    } catch (e) {
-      print('Error checking existing review: $e');
-    }
 
-    final _reviewController = TextEditingController();
-    double _rating = 3.0;
-    
-    await showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Colors.grey[900],
-        title: Text('Review ${item['product'] ?? 'Product'}',
-            style: const TextStyle(color: Colors.white)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // ...existing RatingBar code...
-            RatingBar.builder(
-              initialRating: _rating,
-              minRating: 1,
-              direction: Axis.horizontal,
-              allowHalfRating: true,
-              itemCount: 5,
-              itemPadding: const EdgeInsets.symmetric(horizontal: 4.0),
-              itemBuilder: (context, _) => const Icon(
-                Icons.star,
-                color: Colors.amber,
-              ),
-              onRatingUpdate: (rating) {
-                _rating = rating;
-              },
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _reviewController,
-              style: const TextStyle(color: Colors.white),
-              maxLines: 3,
-              decoration: const InputDecoration(
-                hintText: 'Write your review...',
-                hintStyle: TextStyle(color: Colors.grey),
-                border: OutlineInputBorder(),
-                enabledBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: Colors.grey),
+      // Create controller and variables outside dialog
+      final reviewController = TextEditingController();
+      var rating = 3.0;
+      var isSubmitting = false;
+
+      if (!mounted) return;
+
+      try {
+        await showDialog(
+          context: context,
+          barrierDismissible: false, // Prevent dismissing during submission
+          builder: (BuildContext dialogContext) => StatefulBuilder(
+            builder: (context, setState) {
+              return WillPopScope(
+                onWillPop: () async => !isSubmitting,
+                child: Dialog(
+                  backgroundColor: Colors.grey[900],
+                  child: SingleChildScrollView(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Text(
+                            'Review ${item['product'] ?? 'Product'}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          RatingBar.builder(
+                            initialRating: rating,
+                            minRating: 1,
+                            direction: Axis.horizontal,
+                            allowHalfRating: true,
+                            itemCount: 5,
+                            itemSize: 30,
+                            itemPadding: const EdgeInsets.symmetric(horizontal: 2.0),
+                            itemBuilder: (context, _) => const Icon(
+                              Icons.star,
+                              color: Colors.amber,
+                            ),
+                            onRatingUpdate: (newRating) => rating = newRating,
+                          ),
+                          const SizedBox(height: 16),
+                          TextField(
+                            controller: reviewController,
+                            enabled: !isSubmitting,
+                            style: const TextStyle(color: Colors.white),
+                            maxLines: 3,
+                            decoration: InputDecoration(
+                              hintText: 'Write your review...',
+                              hintStyle: TextStyle(color: Colors.grey[400]),
+                              filled: true,
+                              fillColor: Colors.grey[850],
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide(color: Colors.grey[700]!),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide(color: Colors.grey[700]!),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              TextButton(
+                                onPressed: isSubmitting ? null : () {
+                                  Navigator.pop(dialogContext);
+                                },
+                                child: Text(
+                                  'Cancel',
+                                  style: TextStyle(color: Colors.grey[400]),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              ElevatedButton(
+                                onPressed: isSubmitting ? null : () async {
+                                  if (reviewController.text.trim().isEmpty) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('Please write a review')),
+                                    );
+                                    return;
+                                  }
+
+                                  setState(() => isSubmitting = true);
+
+                                  try {
+                                    await _submitReview(
+                                      productData['product_id'],
+                                      rating,
+                                      reviewController.text.trim(),
+                                    );
+                                    if (mounted) {
+                                      Navigator.pop(dialogContext);
+                                    }
+                                  } catch (e) {
+                                    setState(() => isSubmitting = false);
+                                    rethrow;
+                                  }
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.orange,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 24,
+                                    vertical: 12,
+                                  ),
+                                ),
+                                child: isSubmitting
+                                    ? const SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          valueColor: AlwaysStoppedAnimation<Color>(
+                                            Colors.white,
+                                          ),
+                                        ),
+                                      )
+                                    : const Text('Submit Review'),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              if (_reviewController.text.trim().isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Please write a review')),
-                );
-                return;
-              }
-              Navigator.pop(context);
-              _submitReview(productId, _rating, _reviewController.text);
+              );
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.orange,
-            ),
-            child: const Text('Submit Review'),
           ),
-        ],
-      ),
-    );
-
-    // Dispose the controller
-    _reviewController.dispose();
+        );
+      } finally {
+        reviewController.dispose();
+      }
+    } catch (e) {
+      print('Error in review dialog: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error showing review dialog: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _submitReview(int productId, double rating, String content) async {

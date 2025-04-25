@@ -1,4 +1,5 @@
 import 'package:animearc_admin/screens/login.dart';
+import 'package:animearc_admin/screens/dashboard.dart';  // Add this import
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -76,7 +77,69 @@ class MainApp extends StatelessWidget {
           hintStyle: TextStyle(color: Colors.grey[400]),
         ),
       ),
-      home: const AdminLoginPage(),
+      home: const AuthWrapper(),
     );
+  }
+}
+
+class AuthWrapper extends StatefulWidget {
+  const AuthWrapper({super.key});
+
+  @override
+  State<AuthWrapper> createState() => _AuthWrapperState();
+}
+
+class _AuthWrapperState extends State<AuthWrapper> {
+  bool _isLoading = true;
+  bool _isAuthenticated = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkAuth();
+    
+    // Listen for auth state changes
+    supabase.auth.onAuthStateChange.listen((event) {
+      if (mounted) {
+        setState(() {
+          _isAuthenticated = event.session != null;
+        });
+      }
+    });
+  }
+
+  Future<void> _checkAuth() async {
+    try {
+      final session = supabase.auth.currentSession;
+      if (mounted) {
+        setState(() {
+          _isAuthenticated = session != null;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isAuthenticated = false;
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: AnimeArcTheme.backgroundDark,
+        body: Center(
+          child: CircularProgressIndicator(
+            color: AnimeArcTheme.accentColor,
+          ),
+        ),
+      );
+    }
+
+    return _isAuthenticated ? const AdminHome() : const AdminLoginPage();
   }
 }

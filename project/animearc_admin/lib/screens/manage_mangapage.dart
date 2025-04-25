@@ -58,7 +58,13 @@ class _MangaPagesState extends State<MangaPages> {
     try {
       final response = await Supabase.instance.client
           .from('tbl_mangapage')
-          .select('*, tbl_mangafile!inner(chapter_number)')
+          .select('''
+          mangapage_id,
+          mangapage_no,
+          mangapage_file,
+          mangafile_id,
+          tbl_mangafile!inner(chapter_number)
+        ''')
           .eq('mangafile_id', widget.mangaId)
           .order('mangapage_no');
 
@@ -66,6 +72,7 @@ class _MangaPagesState extends State<MangaPages> {
         _pages = List<Map<String, dynamic>>.from(response);
       });
     } catch (e) {
+      print('Error fetching pages: $e'); // Debug print
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error fetching pages: ${e.toString()}')),
@@ -174,7 +181,6 @@ class _MangaPagesState extends State<MangaPages> {
 
   Future<void> _editPageNumber(Map<String, dynamic> page) async {
     final editController = TextEditingController(text: page['mangapage_no'].toString());
-    final pageId = page['id'];
     
     return showDialog(
       context: context,
@@ -195,22 +201,20 @@ class _MangaPagesState extends State<MangaPages> {
           ),
           TextButton(
             onPressed: () async {
-              final newPageNumber = int.tryParse(editController.text);
-              if (newPageNumber == null) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Please enter a valid page number')),
-                );
-                return;
-              }
-              
-              // Check for duplicate page number, excluding current page
-             
-              
               try {
+                final newPageNumber = int.tryParse(editController.text);
+                if (newPageNumber == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Please enter a valid page number')),
+                  );
+                  return;
+                }
+                
+                // Use the correct field name 'mangapage_id'
                 await Supabase.instance.client
                     .from('tbl_mangapage')
                     .update({'mangapage_no': newPageNumber})
-                    .eq('mangapage_id', pageId);
+                    .eq('mangapage_id', page['mangapage_id']);
                 
                 Navigator.of(context).pop();
                 await _fetchPages();
@@ -221,6 +225,7 @@ class _MangaPagesState extends State<MangaPages> {
                   );
                 }
               } catch (e) {
+                print('Error updating page: $e'); // Debug print
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text('Error updating page: ${e.toString()}')),
@@ -597,21 +602,41 @@ class _MangaPagesState extends State<MangaPages> {
             ElevatedButton(
               onPressed: () async {
                 try {
+                  // First delete the image from storage
+                  final imageUrl = page['mangapage_file'] as String;
+                  final fileName = imageUrl.split('/').last;
+                  final filePath = 'manga_pages/${widget.mangaId}/$fileName';
+                  
+                  await Supabase.instance.client
+                      .storage
+                      .from('manga')
+                      .remove([filePath]);
+
+                  // Then delete the database record
                   await Supabase.instance.client
                       .from('tbl_mangapage')
                       .delete()
-                      .eq('id', page['id']);
+                      .eq('mangapage_id', page['mangapage_id']);  // Changed from 'id'
+
                   Navigator.of(context).pop();
                   await _fetchPages();
+                  
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Page deleted successfully')),
+                      const SnackBar(
+                        content: Text('Page deleted successfully'),
+                        backgroundColor: Colors.green,
+                      ),
                     );
                   }
                 } catch (e) {
+                  print('Error deleting page: $e'); // Debug print
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Error deleting page: ${e.toString()}')),
+                      SnackBar(
+                        content: Text('Error deleting page: ${e.toString()}'),
+                        backgroundColor: Colors.red,
+                      ),
                     );
                   }
                 }
@@ -622,7 +647,7 @@ class _MangaPagesState extends State<MangaPages> {
                   borderRadius: BorderRadius.circular(8),
                 ),
               ),
-              child: const Text('Delete'),
+              child: const Text('Delete', style: TextStyle(color: Colors.white)),
             ),
           ],
         );

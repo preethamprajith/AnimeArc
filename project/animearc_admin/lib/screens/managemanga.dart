@@ -95,10 +95,124 @@ class _ManageMangaState extends State<ManageManga> {
 
   Future<void> deleteManga(int mangaId) async {
     try {
-      await Supabase.instance.client.from('tbl_manga').delete().eq('manga_id', mangaId);
-      fetchManga();
+      final supabase = Supabase.instance.client;
+
+      // Show confirmation dialog
+      final bool? confirm = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Delete Manga'),
+          content: const Text('This will delete all chapters, pages, and watchlist entries. Are you sure?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              child: const Text('Delete'),
+            ),
+          ],
+        ),
+      );
+
+      if (confirm != true) return;
+
+      // Delete from watchlist first
+      await supabase
+          .from('tbl_watchlist')
+          .delete()
+          .eq('manga_id', mangaId);
+
+      // Get all chapters
+      final chapters = await supabase
+          .from('tbl_mangafile')
+          .select('mangafile_id, chapter_file')
+          .eq('manga_id', mangaId);
+
+      // Delete all pages for each chapter
+      for (final chapter in chapters) {
+        // Get pages for this chapter
+        final pages = await supabase
+            .from('tbl_mangapage')
+            .select('mangapage_file')
+            .eq('mangafile_id', chapter['mangafile_id']);
+
+        // Delete page files from storage
+        for (final page in pages) {
+          try {
+            final fileName = page['mangapage_file'].toString().split('/').last;
+            await supabase.storage.from('manga').remove(['manga_pages/$fileName']);
+          } catch (e) {
+            print('Error deleting page file: $e');
+          }
+        }
+
+        // Delete chapter cover from storage
+        try {
+          final chapterFileName = chapter['chapter_file'].toString().split('/').last;
+          await supabase.storage.from('manga').remove(['manga_chapters/$chapterFileName']);
+        } catch (e) {
+          print('Error deleting chapter cover: $e');
+        }
+
+        // Delete pages from database
+        await supabase
+            .from('tbl_mangapage')
+            .delete()
+            .eq('mangafile_id', chapter['mangafile_id']);
+      }
+
+      // Delete all chapters
+      await supabase
+          .from('tbl_mangafile')
+          .delete()
+          .eq('manga_id', mangaId);
+
+      // Delete manga cover from storage
+      try {
+        final manga = await supabase
+            .from('tbl_manga')
+            .select('manga_cover')
+            .eq('manga_id', mangaId)
+            .single();
+        
+        if (manga['manga_cover'] != null) {
+          final coverFileName = manga['manga_cover'].toString().split('/').last;
+          await supabase.storage.from('manga').remove([coverFileName]);
+        }
+      } catch (e) {
+        print('Error deleting manga cover: $e');
+      }
+
+      // Finally delete the manga
+      await supabase
+          .from('tbl_manga')
+          .delete()
+          .eq('manga_id', mangaId);
+
+      // Refresh the list
+      await fetchManga();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Manga and all related content deleted successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
     } catch (e) {
-      print("Error deleting manga: $e");
+      print('Error deleting manga: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error deleting manga: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 

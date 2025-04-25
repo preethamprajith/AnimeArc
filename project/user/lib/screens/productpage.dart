@@ -20,6 +20,7 @@ class _ProductPageState extends State<ProductPage> {
   int reviewCount = 0;
   List<Map<String, dynamic>> reviews = [];
   bool isInStock = false;
+  int maxStock = 0;
 
   @override
   void initState() {
@@ -35,6 +36,7 @@ class _ProductPageState extends State<ProductPage> {
           .select('''
             *,
             tbl_stock (
+              stock_id,
               stock_qty
             )
           ''')
@@ -44,15 +46,29 @@ class _ProductPageState extends State<ProductPage> {
       if (mounted) {
         setState(() {
           product = response;
-          // Check stock status
-          final stockData = product?['tbl_stock'] as List?;
-          isInStock = stockData != null && 
-                     stockData.isNotEmpty && 
-                     (stockData[0]['stock_qty'] ?? 0) > 0;
+          
+          // Calculate total stock
+          final stockDataList = product?['tbl_stock'] as List?;
+          int totalStockQty = 0;
+
+          if (stockDataList != null && stockDataList.isNotEmpty) {
+            for (var stockData in stockDataList) {
+              final qty = int.tryParse(stockData['stock_qty'].toString()) ?? 0;
+              totalStockQty += qty;
+            }
+          }
+
+          maxStock = totalStockQty; // Set maximum stock
+          isInStock = totalStockQty > 0;
+          product?['total_stock'] = totalStockQty;
           isLoading = false;
+
+          // Debug print
+          print('Product: ${product?['product_name']}, Total Stock: $totalStockQty');
         });
       }
     } catch (e) {
+      print('Error fetching product details: $e');
       if (mounted) {
         setState(() {
           isLoading = false;
@@ -95,8 +111,23 @@ class _ProductPageState extends State<ProductPage> {
 
   void updateQuantity(bool increment) {
     setState(() {
-      if (increment && quantity < 99) {
-        quantity++;
+      if (increment) {
+        if (quantity < maxStock) {
+          quantity++;
+        } else {
+          // Show message when trying to exceed stock
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Maximum available stock is $maxStock'),
+              backgroundColor: Colors.orange,
+              behavior: SnackBarBehavior.floating,
+              margin: const EdgeInsets.all(16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+          );
+        }
       } else if (!increment && quantity > 1) {
         quantity--;
       }
@@ -485,13 +516,27 @@ class _ProductPageState extends State<ProductPage> {
                                     color: isInStock ? Colors.green.withOpacity(0.9) : Colors.red.withOpacity(0.9),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
-                                  child: Text(
-                                    isInStock ? 'IN STOCK' : 'OUT OF STOCK',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                                  child: Column(
+                                    children: [
+                                      Text(
+                                        isInStock ? 'IN STOCK' : 'OUT OF STOCK',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      if (isInStock) ...[
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          'Available: ${product?['total_stock'] ?? 0}',
+                                          style: const TextStyle(
+                                            color: Colors.white70,
+                                            fontSize: 10,
+                                          ),
+                                        ),
+                                      ],
+                                    ],
                                   ),
                                 ),
                               ],

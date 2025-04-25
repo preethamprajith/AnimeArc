@@ -18,7 +18,15 @@ class _RegisterPageState extends State<RegisterPage> {
   final TextEditingController _usercontactController = TextEditingController();
   final TextEditingController _confirmPasswordController = TextEditingController();
 
+  bool _isPasswordVisible = false;
+  bool _isConfirmPasswordVisible = false;
+  final _formKey = GlobalKey<FormState>();
+
   Future<void> register() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
     try {
       if (_userpassController.text != _confirmPasswordController.text) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -139,110 +147,113 @@ class _RegisterPageState extends State<RegisterPage> {
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 30.0),
                 child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      // Header with anime character
-                      _buildAnimeHeader(),
-                      const SizedBox(height: 20),
-      
-                      // Stylized app name
-                      _buildStylizedAppName(),
-                      const SizedBox(height: 10),
-                      
-                      // Tagline
-                      Text(
-                        "Create your account to start streaming",
-                        textAlign: TextAlign.center,
-                        style: GoogleFonts.poppins(
-                          color: Colors.white.withOpacity(0.7),
-                          fontSize: 14,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                      const SizedBox(height: 30),
-
-                      // Form fields
-                      _buildInputField(
-                        controller: _usernameController,
-                        hintText: "Username",
-                        icon: Icons.person_outline,
-                      ),
-                      const SizedBox(height: 15),
-                      
-                      _buildInputField(
-                        controller: _useremailController,
-                        hintText: "Email",
-                        icon: Icons.email_outlined,
-                        keyboardType: TextInputType.emailAddress,
-                      ),
-                      const SizedBox(height: 15),
-                      
-                      _buildInputField(
-                        controller: _userpassController,
-                        hintText: "Password",
-                        icon: Icons.lock_outline,
-                        isPassword: true,
-                      ),
-                      const SizedBox(height: 15),
-                      
-                      _buildInputField(
-                        controller: _confirmPasswordController,
-                        hintText: "Confirm Password",
-                        icon: Icons.lock_outline,
-                        isPassword: true,
-                      ),
-                      const SizedBox(height: 15),
-                      
-                      _buildInputField(
-                        controller: _useraddressController,
-                        hintText: "Address",
-                        icon: Icons.home_outlined,
-                      ),
-                      const SizedBox(height: 15),
-                      
-                      _buildInputField(
-                        controller: _usercontactController,
-                        hintText: "Phone Number",
-                        icon: Icons.phone_outlined,
-                        keyboardType: TextInputType.phone,
-                      ),
-                      const SizedBox(height: 30),
-      
-                      // Register Button
-                      _buildGradientButton(
-                        label: "Register",
-                        onPressed: register,
-                      ),
-                      const SizedBox(height: 25),
-      
-                      // Back to Login Text
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Text(
-                            "Already have an account? ",
-                            style: TextStyle(color: Colors.white70),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        // Header with anime character
+                        _buildAnimeHeader(),
+                        const SizedBox(height: 20),
+        
+                        // Stylized app name
+                        _buildStylizedAppName(),
+                        const SizedBox(height: 10),
+                        
+                        // Tagline
+                        Text(
+                          "Create your account to start streaming",
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.poppins(
+                            color: Colors.white.withOpacity(0.7),
+                            fontSize: 14,
+                            letterSpacing: 0.5,
                           ),
-                          GestureDetector(
-                            onTap: () {
-                              Navigator.pushReplacement(
-                                context,
-                                MaterialPageRoute(builder: (context) => const Login()),
-                              );
-                            },
-                            child: const Text(
-                              "Login",
-                              style: TextStyle(
-                                color: Color(0xFFE991FF),
-                                fontWeight: FontWeight.bold,
+                        ),
+                        const SizedBox(height: 30),
+
+                        // Form fields
+                        _buildInputField(
+                          controller: _usernameController,
+                          hintText: "Username",
+                          icon: Icons.person_outline,
+                        ),
+                        const SizedBox(height: 15),
+                        
+                        _buildInputField(
+                          controller: _useremailController,
+                          hintText: "Email",
+                          icon: Icons.email_outlined,
+                          keyboardType: TextInputType.emailAddress,
+                        ),
+                        const SizedBox(height: 15),
+                        
+                        _buildInputField(
+                          controller: _userpassController,
+                          hintText: "Password",
+                          icon: Icons.lock_outline,
+                          isPassword: true,
+                        ),
+                        const SizedBox(height: 15),
+                        
+                        _buildInputField(
+                          controller: _confirmPasswordController,
+                          hintText: "Confirm Password",
+                          icon: Icons.lock_outline,
+                          isPassword: true,
+                        ),
+                        const SizedBox(height: 15),
+                        
+                        _buildInputField(
+                          controller: _useraddressController,
+                          hintText: "Address",
+                          icon: Icons.home_outlined,
+                        ),
+                        const SizedBox(height: 15),
+                        
+                        _buildInputField(
+                          controller: _usercontactController,
+                          hintText: "Phone Number",
+                          icon: Icons.phone_outlined,
+                          keyboardType: TextInputType.phone,
+                        ),
+                        const SizedBox(height: 30),
+        
+                        // Register Button
+                        _buildGradientButton(
+                          label: "Register",
+                          onPressed: register,
+                        ),
+                        const SizedBox(height: 25),
+        
+                        // Back to Login Text
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Text(
+                              "Already have an account? ",
+                              style: TextStyle(color: Colors.white70),
+                            ),
+                            GestureDetector(
+                              onTap: () {
+                                Navigator.pushReplacement(
+                                  context,
+                                  MaterialPageRoute(builder: (context) => const Login()),
+                                );
+                              },
+                              child: const Text(
+                                "Login",
+                                style: TextStyle(
+                                  color: Color(0xFFE991FF),
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 20),
-                    ],
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -268,7 +279,7 @@ class _RegisterPageState extends State<RegisterPage> {
           ),
         ],
         image: const DecorationImage(
-          image: AssetImage('123.png'),
+          image: AssetImage('assets/123.png'),  // Updated path
           fit: BoxFit.cover,
         ),
       ),
@@ -320,12 +331,42 @@ class _RegisterPageState extends State<RegisterPage> {
       ),
       child: TextFormField(
         controller: controller,
-        obscureText: isPassword,
+        obscureText: isPassword && 
+          ((hintText == "Password" && !_isPasswordVisible) || 
+           (hintText == "Confirm Password" && !_isConfirmPasswordVisible)),
         keyboardType: keyboardType,
         style: GoogleFonts.poppins(
           color: Colors.white,
           fontSize: 14,
         ),
+        validator: (value) {
+          if (value == null || value.isEmpty) {
+            return 'Please enter $hintText';
+          }
+          if (hintText == "Email") {
+            final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+            if (!emailRegex.hasMatch(value)) {
+              return 'Please enter a valid email';
+            }
+          }
+          if (hintText == "Password") {
+            if (value.length < 6) {
+              return 'Password must be at least 6 characters';
+            }
+          }
+          if (hintText == "Confirm Password") {
+            if (value != _userpassController.text) {
+              return 'Passwords do not match';
+            }
+          }
+          if (hintText == "Phone Number") {
+            final phoneRegex = RegExp(r'^\+?[\d\s-]{10,}$');
+            if (!phoneRegex.hasMatch(value)) {
+              return 'Please enter a valid phone number';
+            }
+          }
+          return null;
+        },
         decoration: InputDecoration(
           hintText: hintText,
           hintStyle: GoogleFonts.poppins(
@@ -335,6 +376,30 @@ class _RegisterPageState extends State<RegisterPage> {
           contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
           border: InputBorder.none,
           prefixIcon: Icon(icon, color: Colors.white70, size: 20),
+          suffixIcon: isPassword
+              ? IconButton(
+                  icon: Icon(
+                    (hintText == "Password" ? _isPasswordVisible : _isConfirmPasswordVisible)
+                        ? Icons.visibility
+                        : Icons.visibility_off,
+                    color: Colors.white70,
+                    size: 20,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      if (hintText == "Password") {
+                        _isPasswordVisible = !_isPasswordVisible;
+                      } else {
+                        _isConfirmPasswordVisible = !_isConfirmPasswordVisible;
+                      }
+                    });
+                  },
+                )
+              : null,
+          errorStyle: GoogleFonts.poppins(
+            color: Colors.red[300],
+            fontSize: 12,
+          ),
         ),
       ),
     );

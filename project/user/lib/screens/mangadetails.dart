@@ -18,11 +18,18 @@ class _MangaDetailsState extends State<MangaDetails> {
   bool isLoading = true;
   bool isInWatchlist = false;
 
+  final TextEditingController _reviewController = TextEditingController();
+  double _rating = 0;
+  List<Map<String, dynamic>> reviews = [];
+  bool isReviewSubmitting = false;
+  bool hasUserReviewed = false;
+
   @override
   void initState() {
     super.initState();
     fetchMangaDetails();
     checkWatchlistStatus();
+    fetchReviews();
   }
 
   Future<void> fetchMangaDetails() async {
@@ -115,6 +122,240 @@ class _MangaDetailsState extends State<MangaDetails> {
         SnackBar(content: Text('Error: ${e.toString()}')),
       );
     }
+  }
+
+  Future<void> fetchReviews() async {
+    try {
+      final response = await supabase
+          .from('tbl_review')
+          .select('*, profiles:user_id(*)')
+          .eq('manga_id', widget.mangaId)
+          .order('review_date', ascending: false);
+
+      final user = supabase.auth.currentUser;
+      if (mounted) {
+        setState(() {
+          reviews = List<Map<String, dynamic>>.from(response);
+          hasUserReviewed = user != null && 
+              reviews.any((review) => review['user_id'] == user.id);
+        });
+      }
+    } catch (e) {
+      print('Error fetching reviews: $e');
+    }
+  }
+
+  Future<void> submitReview() async {
+    if (hasUserReviewed) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('You have already reviewed this manga'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (_reviewController.text.trim().isEmpty || _rating == 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please add both rating and review')),
+      );
+      return;
+    }
+
+    setState(() => isReviewSubmitting = true);
+
+    try {
+      final user = supabase.auth.currentUser;
+      if (user == null) {
+        throw Exception('Must be logged in to review');
+      }
+
+      await supabase.from('tbl_review').insert({
+        'review_rating': _rating.toString(),
+        'review_content': _reviewController.text.trim(),
+        'review_date': DateTime.now().toIso8601String(),
+        'user_id': user.id,
+        'manga_id': widget.mangaId,
+      });
+
+      _reviewController.clear();
+      setState(() => _rating = 0);
+      await fetchReviews();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Review submitted successfully!')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error submitting review: $e')),
+      );
+    } finally {
+      setState(() => isReviewSubmitting = false);
+    }
+  }
+
+  Widget _buildReviewSection() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF2D1F4C),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF9B6DFF).withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (!hasUserReviewed) ...[
+            Text(
+              'Write a Review',
+              style: GoogleFonts.poppins(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: List.generate(5, (index) {
+                return IconButton(
+                  icon: Icon(
+                    index < _rating ? Icons.star : Icons.star_border,
+                    color: const Color(0xFF9B6DFF),
+                    size: 32,
+                  ),
+                  onPressed: () {
+                    setState(() => _rating = index + 1);
+                  },
+                );
+              }),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _reviewController,
+              style: GoogleFonts.poppins(color: Colors.white),
+              maxLines: 3,
+              decoration: InputDecoration(
+                hintText: 'Share your thoughts...',
+                hintStyle: GoogleFonts.poppins(color: Colors.white54),
+                filled: true,
+                fillColor: const Color(0xFF1A0F2C),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(
+                    color: const Color(0xFF9B6DFF).withOpacity(0.3),
+                  ),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(
+                    color: const Color(0xFF9B6DFF).withOpacity(0.3),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: isReviewSubmitting ? null : submitReview,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF9B6DFF),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: isReviewSubmitting
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                      )
+                    : Text(
+                        'Submit Review',
+                        style: GoogleFonts.poppins(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+              ),
+            ),
+          ],
+          if (reviews.isNotEmpty) ...[
+            const SizedBox(height: 24),
+            Text(
+              'Reviews',
+              style: GoogleFonts.poppins(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 12),
+            ...reviews.map((review) => Container(
+              margin: const EdgeInsets.only(bottom: 16),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1A0F2C),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: const Color(0xFF9B6DFF).withOpacity(0.2),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      ...List.generate(
+                        5,
+                        (index) => Icon(
+                          index < double.parse(review['review_rating']) 
+                              ? Icons.star 
+                              : Icons.star_border,
+                          color: const Color(0xFF9B6DFF),
+                          size: 16,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        DateTime.parse(review['review_date'])
+                            .toLocal()
+                            .toString()
+                            .split(' ')[0],
+                        style: GoogleFonts.poppins(
+                          color: Colors.white54,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    review['review_content'],
+                    style: GoogleFonts.poppins(
+                      color: Colors.white,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
+            )),
+          ],
+        ],
+      ),
+    );
   }
 
   @override
@@ -239,7 +480,9 @@ class _MangaDetailsState extends State<MangaDetails> {
                         ),
                       ),
                       const SizedBox(height: 16),
-                      Row(
+                      Wrap(
+                        spacing: 12,
+                        runSpacing: 8,
                         children: [
                           Container(
                             padding: const EdgeInsets.symmetric(
@@ -267,13 +510,15 @@ class _MangaDetailsState extends State<MangaDetails> {
                               ),
                             ),
                           ),
-                          const SizedBox(width: 12),
-                          Text(
-                            'By ${mangaDetails!['manga_author']}',
-                            style: GoogleFonts.poppins(
-                              color: const Color(0xFF9B6DFF),
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
+                          Flexible(
+                            child: Text(
+                              'By ${mangaDetails!['manga_author']}',
+                              style: GoogleFonts.poppins(
+                                color: const Color(0xFF9B6DFF),
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         ],
@@ -333,11 +578,15 @@ class _MangaDetailsState extends State<MangaDetails> {
                           ),
                         ],
                       ),
+                      _buildReviewSection(),
                     ],
                   ),
                 ),
               ),
             ),
+          ),
+          SliverToBoxAdapter(
+            child: _buildReviewSection(),
           ),
           SliverList(
             delegate: SliverChildBuilderDelegate(

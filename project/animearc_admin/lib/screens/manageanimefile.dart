@@ -14,7 +14,7 @@ class UploadAnimeVideo extends StatefulWidget {
 }
 
 class _UploadAnimeVideoState extends State<UploadAnimeVideo>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   final TextEditingController _episodeController = TextEditingController();
   final TextEditingController _seasonController = TextEditingController();
   List<Map<String, dynamic>> animeFiles = [];
@@ -28,6 +28,8 @@ class _UploadAnimeVideoState extends State<UploadAnimeVideo>
   @override
   void initState() {
     super.initState();
+    // Initialize TabController with default value
+    _tabController = TabController(length: 1, vsync: this);
     fetchGenres();
     fetchAnimeFiles();
   }
@@ -67,11 +69,16 @@ class _UploadAnimeVideoState extends State<UploadAnimeVideo>
             .toList()
           ..sort();
 
-        // Initialize TabController after getting seasons
+        // Dispose old controller before creating new one
+        _tabController.dispose();
+        // Create new controller with updated length
         _tabController = TabController(
-            length: seasons.isEmpty ? 1 : seasons.length, vsync: this);
+            length: seasons.isEmpty ? 1 : seasons.length, 
+            vsync: this
+        );
       });
     } catch (e) {
+      print("Error fetching anime files: $e");
       showSnackbar("Error fetching anime files", Colors.red);
     }
   }
@@ -99,43 +106,76 @@ class _UploadAnimeVideoState extends State<UploadAnimeVideo>
       final fileExtension = pickedVideo!.name.split('.').last;
       final fileName = "$timestamp.$fileExtension";
 
-      await Supabase.instance.client.storage.from(bucketName).uploadBinary(
-            fileName,
-            pickedVideo!.bytes!,
-          );
+      // Check file size (limit to 100MB for example)
+      if (pickedVideo!.size > 100 * 1024 * 1024) {
+        throw Exception('File size exceeds 100MB limit');
+      }
 
-      return Supabase.instance.client.storage
-          .from(bucketName)
-          .getPublicUrl(fileName);
-    } catch (e) {
-      showSnackbar("Error uploading video", Colors.red);
+      // Check file type
+      if (!['mp4', 'mkv', 'avi', 'mov'].contains(fileExtension.toLowerCase())) {
+        throw Exception('Unsupported file format. Use mp4, mkv, avi, or mov');
+      }
+
+      await Supabase.instance.client.storage.from(bucketName).uploadBinary(
+        fileName,
+        pickedVideo!.bytes!,
+      );
+
+      return Supabase.instance.client.storage.from(bucketName).getPublicUrl(fileName);
+    } on StorageException catch (e) {
+      print('Storage error: ${e.message}');
+      showSnackbar("Storage error: ${e.message}", Colors.red);
+      return null;
+    } on Exception catch (e) {
+      print('Upload error: $e');
+      showSnackbar(e.toString(), Colors.red);
       return null;
     }
   }
 
   Future<void> insertAnimeVideo() async {
-    if (pickedVideo == null) {
-      showSnackbar("Please select a video file and an anime!", Colors.red);
-      return;
-    }
-
     try {
-      String? videoUrl = await uploadVideoToSupabase();
-      if (videoUrl == null) {
-        showSnackbar("Failed to upload video!", Colors.red);
-        return;
+      // Validate inputs
+      if (_episodeController.text.isEmpty || _seasonController.text.isEmpty) {
+        throw Exception('Episode and season numbers are required');
       }
 
+      if (int.tryParse(_episodeController.text) == null || 
+          int.tryParse(_seasonController.text) == null) {
+        throw Exception('Episode and season must be valid numbers');
+      }
+
+      if (pickedVideo == null) {
+        throw Exception('Please select a video file');
+      }
+
+      // Upload video
+      String? videoUrl = await uploadVideoToSupabase();
+      if (videoUrl == null) {
+        throw Exception('Failed to upload video');
+      }
+
+      // Check for duplicate episode
+      final existingEpisodes = await Supabase.instance.client
+          .from('tbl_animefile')
+          .select()
+          .eq('anime_id', widget.animeId)
+          .eq('animefile_season', _seasonController.text)
+          .eq('animefile_episode', _episodeController.text);
+
+      if (existingEpisodes.isNotEmpty) {
+        throw Exception('Episode ${_episodeController.text} already exists in season ${_seasonController.text}');
+      }
+
+      // Insert record
       await Supabase.instance.client.from("tbl_animefile").insert({
         'animefile_file': videoUrl,
-        'animefile_episode':
-            _episodeController.text.isNotEmpty ? _episodeController.text : "1",
-        'animefile_season':
-            _seasonController.text.isNotEmpty ? _seasonController.text : "1",
+        'animefile_episode': _episodeController.text,
+        'animefile_season': _seasonController.text,
         'anime_id': widget.animeId,
       });
 
-      // Reset Fields
+      // Reset form and refresh
       _episodeController.clear();
       _seasonController.clear();
       pickedVideo = null;
@@ -143,8 +183,12 @@ class _UploadAnimeVideoState extends State<UploadAnimeVideo>
       setState(() {});
 
       showSuccessDialog();
-    } catch (e) {
-      showSnackbar("Error inserting anime video: ${e.toString()}", Colors.red);
+    } on PostgrestException catch (e) {
+      print('Database error: ${e.message}');
+      showSnackbar("Database error: ${e.message}", Colors.red);
+    } on Exception catch (e) {
+      print('Error: $e');
+      showSnackbar(e.toString(), Colors.red);
     }
   }
 
@@ -753,6 +797,29 @@ class _UploadAnimeVideoState extends State<UploadAnimeVideo>
 
   Future<void> _deleteAnimeFile(int fileId) async {
     try {
+      // Get file URL before deletion
+      final fileData = await Supabase.instance.client
+          .from('tbl_animefile')
+          .select('animefile_file')
+          .eq('animefile_id', fileId)
+          .single();
+
+      // Delete from storage first
+      if (fileData['animefile_file'] != null) {
+        final fileUrl = fileData['animefile_file'].toString();
+        final fileName = fileUrl.split('/').last;
+        
+        try {
+          await Supabase.instance.client.storage
+              .from('anime')
+              .remove([fileName]);
+        } on StorageException catch (e) {
+          print('Storage deletion error: ${e.message}');
+          // Continue with database deletion even if storage deletion fails
+        }
+      }
+
+      // Delete from database
       await Supabase.instance.client
           .from('tbl_animefile')
           .delete()
@@ -760,8 +827,12 @@ class _UploadAnimeVideoState extends State<UploadAnimeVideo>
 
       await fetchAnimeFiles();
       showSnackbar("Episode deleted successfully", Colors.green);
+    } on PostgrestException catch (e) {
+      print('Database deletion error: ${e.message}');
+      showSnackbar("Database error: ${e.message}", Colors.red);
     } catch (e) {
-      showSnackbar("Error deleting episode: ${e.toString()}", Colors.red);
+      print('Deletion error: $e');
+      showSnackbar("Error deleting episode: $e", Colors.red);
     }
   }
 }
