@@ -585,9 +585,6 @@ class _MangaDetailsState extends State<MangaDetails> {
               ),
             ),
           ),
-          SliverToBoxAdapter(
-            child: _buildReviewSection(),
-          ),
           SliverList(
             delegate: SliverChildBuilderDelegate(
               (context, index) {

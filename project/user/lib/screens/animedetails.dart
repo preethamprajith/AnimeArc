@@ -205,13 +205,28 @@ class _AnimedetailsState extends State<Animedetails> with SingleTickerProviderSt
           .order('review_date', ascending: false);
 
       final user = supabase.auth.currentUser;
-      if (mounted) {
-        setState(() {
-          reviews = List<Map<String, dynamic>>.from(response);
-          // Check if current user has already reviewed
-          hasUserReviewed = user != null && 
-              reviews.any((review) => review['user_id'] == user.id);
-        });
+      
+      // Check if user has already reviewed
+      if (user != null) {
+        final hasReviewed = await supabase
+            .from('tbl_review')
+            .select()
+            .eq('anime_id', widget.animeId)
+            .eq('user_id', user.id)
+            .maybeSingle();
+
+        if (mounted) {
+          setState(() {
+            reviews = List<Map<String, dynamic>>.from(response);
+            hasUserReviewed = hasReviewed != null;
+            
+            // If user has reviewed, pre-fill the review form
+            if (hasReviewed != null) {
+              _rating = double.tryParse(hasReviewed['review_rating'].toString()) ?? 0;
+              _reviewController.text = hasReviewed['review_content'] ?? '';
+            }
+          });
+        }
       }
     } catch (e) {
       print('Error fetching reviews: $e');
@@ -219,16 +234,6 @@ class _AnimedetailsState extends State<Animedetails> with SingleTickerProviderSt
   }
 
   Future<void> submitReview() async {
-    if (hasUserReviewed) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('You have already reviewed this anime'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
     if (_reviewController.text.trim().isEmpty || _rating == 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please add both rating and review')),
@@ -244,6 +249,19 @@ class _AnimedetailsState extends State<Animedetails> with SingleTickerProviderSt
         throw Exception('Must be logged in to review');
       }
 
+      // Check if user has already reviewed
+      final existingReview = await supabase
+          .from('tbl_review')
+          .select()
+          .eq('anime_id', widget.animeId)
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+      if (existingReview != null) {
+        throw Exception('You have already reviewed this anime');
+      }
+
+      // Insert new review
       await supabase.from('tbl_review').insert({
         'review_rating': _rating.toString(),
         'review_content': _reviewController.text.trim(),
@@ -257,11 +275,17 @@ class _AnimedetailsState extends State<Animedetails> with SingleTickerProviderSt
       await fetchReviews();
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Review submitted successfully!')),
+        const SnackBar(
+          content: Text('Review submitted successfully!'),
+          backgroundColor: Colors.green,
+        ),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error submitting review: $e')),
+        SnackBar(
+          content: Text(e.toString().replaceAll('Exception: ', '')),
+          backgroundColor: Colors.red,
+        ),
       );
     } finally {
       setState(() => isReviewSubmitting = false);

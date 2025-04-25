@@ -21,16 +21,20 @@ class _MangaPagesState extends State<MangaPages> {
   bool isLoading = true;
   late PageController _pageController;
   bool _showControls = true;
+  int currentPage = 0; // Add this variable
 
   @override
   void initState() {
     super.initState();
     _pageController = PageController();
+    // Add listener to track page changes
+    _pageController.addListener(_onPageChanged);
     fetchPages();
   }
 
   @override
   void dispose() {
+    _pageController.removeListener(_onPageChanged); // Remove listener
     _pageController.dispose();
     super.dispose();
   }
@@ -57,6 +61,15 @@ class _MangaPagesState extends State<MangaPages> {
     setState(() {
       _showControls = !_showControls;
     });
+  }
+
+  // Add this method to handle page changes
+  void _onPageChanged() {
+    if (_pageController.hasClients && _pageController.page != null) {
+      setState(() {
+        currentPage = _pageController.page!.round();
+      });
+    }
   }
 
   @override
@@ -167,7 +180,7 @@ class _MangaPagesState extends State<MangaPages> {
                               borderRadius: BorderRadius.circular(15),
                             ),
                             child: Text(
-                              '${_pageController.hasClients ? (_pageController.page?.toInt() ?? 0) + 1 : 1}/${pages.length}',
+                              '${currentPage + 1}/${pages.length}', // Use currentPage instead
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,

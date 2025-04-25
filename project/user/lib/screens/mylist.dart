@@ -5,6 +5,7 @@ import 'package:user/screens/mangadetails.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import 'package:animated_text_kit/animated_text_kit.dart';
+import 'package:user/screens/search_screen.dart';
 
 const Color kPrimaryPurple = Color(0xFF4A1A70);
 const Color kDarkPurple = Color(0xFF2D1F4C);
@@ -138,6 +139,8 @@ class _MyListState extends State<MyList> with SingleTickerProviderStateMixin {
   }
 
   Widget buildEmptyState(String type) {
+    final bool isAnime = type.toLowerCase() == 'anime';
+    
     return Container(
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -147,17 +150,17 @@ class _MyListState extends State<MyList> with SingleTickerProviderStateMixin {
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: Colors.orange.withOpacity(0.1),
+              color: kLightPurple.withOpacity(0.1),
             ),
-            child: Image.asset(
-              './assets/tv_cat.png',
-              width: 150,
-              height: 150,
+            child: Icon(
+              isAnime ? Icons.tv_rounded : Icons.book_rounded,
+              size: 80,
+              color: kLightPurple,
             ),
           ),
           const SizedBox(height: 24),
           Text(
-            "Your $type Watchlist is Empty",
+            "Your $type Collection is Empty",
             style: GoogleFonts.poppins(
               color: Colors.white,
               fontSize: 24,
@@ -176,9 +179,20 @@ class _MyListState extends State<MyList> with SingleTickerProviderStateMixin {
           const SizedBox(height: 32),
           ElevatedButton.icon(
             onPressed: () {
-              // Navigate to browse section
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const SearchScreen(),
+                ),
+              ).then((_) {
+                // Refresh the watchlist when returning from search
+                _refreshData();
+              });
             },
-            icon: const Icon(Icons.add_rounded),
+            icon: Icon(
+              isAnime ? Icons.tv_rounded : Icons.book_rounded,
+              size: 24,
+            ),
             label: Text(
               "Browse $type",
               style: GoogleFonts.poppins(
@@ -187,7 +201,7 @@ class _MyListState extends State<MyList> with SingleTickerProviderStateMixin {
               ),
             ),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.orange,
+              backgroundColor: kLightPurple,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(
                 horizontal: 32,

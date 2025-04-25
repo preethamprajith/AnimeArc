@@ -39,32 +39,48 @@ class _ComplaintPageState extends State<ComplaintPage> with SingleTickerProvider
       final response = await Supabase.instance.client
           .from('tbl_complaint')
           .select('''
-            complaint_id,
-            complaint_title,
-            complaint_content,
-            complaint_replay,
-            complaint_status,
-            complaint_date,
-            complaint_screenshot,
-            tbl_user (
-              user_id,
-              user_name
-            )
-          ''')
+          complaint_id,
+          complaint_title,
+          complaint_content,
+          complaint_replay,
+          complaint_status,
+          complaint_date,
+          complaint_screenshot,
+          user_id,
+          tbl_admin (
+            admin_id,
+            admin_name
+          ),
+          tbl_user (
+            user_id,
+            user_name,
+            user_email
+          )
+        ''')
           .order('complaint_date', ascending: false);
 
-      // Validate and transform screenshot URLs
+      // Transform the response and handle URLs
       final validatedComplaints = List<Map<String, dynamic>>.from(response).map((complaint) {
+        // Handle complaint screenshot URL
         if (complaint['complaint_screenshot'] != null) {
           final screenshotUrl = complaint['complaint_screenshot'].toString();
           if (!screenshotUrl.startsWith('http')) {
-            // Construct full Supabase URL if needed
             complaint['complaint_screenshot'] = Supabase.instance.client
                 .storage
-                .from('complaint')
-                .getPublicUrl(screenshotUrl);
+                .from('complaints')  // Make sure this matches your bucket name
+                .getPublicUrl('screenshots/$screenshotUrl');  // Add screenshots/ folder path if needed
           }
         }
+
+        // Format the date
+        if (complaint['complaint_date'] != null) {
+          final date = DateTime.parse(complaint['complaint_date']);
+          complaint['formatted_date'] = '${date.day}/${date.month}/${date.year}';
+        }
+
+        // Set default status if null
+        complaint['complaint_status'] ??= 'Pending';
+
         return complaint;
       }).toList();
 
@@ -78,7 +94,7 @@ class _ComplaintPageState extends State<ComplaintPage> with SingleTickerProvider
       print('Error fetching complaints: $error');
       if (mounted) {
         setState(() {
-          _error = error.toString();
+          _error = 'Failed to load complaints: ${error.toString()}';
           _isLoading = false;
         });
       }
@@ -366,9 +382,10 @@ class _ComplaintPageState extends State<ComplaintPage> with SingleTickerProvider
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Image.asset(
-              'assets/images/no_complaints.png', // Add this image to your assets
-              height: 120,
+            Icon(
+              Icons.inbox_rounded,
+              size: 120,
+              color: Colors.grey[300],
             ),
             const SizedBox(height: 16),
             const Text(
@@ -377,6 +394,14 @@ class _ComplaintPageState extends State<ComplaintPage> with SingleTickerProvider
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
                 color: Colors.deepPurple,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'All resolved! Nothing to see here.',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[600],
               ),
             ),
           ],
@@ -486,8 +511,11 @@ class _ComplaintPageState extends State<ComplaintPage> with SingleTickerProvider
                               const Icon(Icons.calendar_today, size: 16, color: Colors.grey),
                               const SizedBox(width: 8),
                               Text(
-                                'Submitted on ${complaint['complaint_date'] ?? 'Unknown Date'}',
-                                style: const TextStyle(color: Colors.grey),
+                                'Submitted ${getTimeAgo(complaint['complaint_date'])}',
+                                style: TextStyle(
+                                  color: Colors.grey[600],
+                                  fontSize: 12,
+                                ),
                               ),
                             ],
                           ),
@@ -503,18 +531,82 @@ class _ComplaintPageState extends State<ComplaintPage> with SingleTickerProvider
                           ),
                           if (complaint['complaint_screenshot'] != null) ...[
                             const SizedBox(height: 16),
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(12),
-                              child: Image.network(
-                                complaint['complaint_screenshot'],
-                                fit: BoxFit.cover,
-                                height: 200,
-                                width: double.infinity,
-                                loadingBuilder: (context, child, loadingProgress) {
-                                  if (loadingProgress == null) return child;
-                                  return _buildImageLoadingIndicator(loadingProgress);
-                                },
-                                errorBuilder: _buildImageError,
+                            Container(
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: Colors.grey.shade200),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Padding(
+                                    padding: const EdgeInsets.all(8.0),
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.image, size: 16, color: Colors.grey[600]),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          'User Screenshot',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.grey[600],
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  ClipRRect(
+                                    borderRadius: const BorderRadius.vertical(bottom: Radius.circular(12)),
+                                    child: Image.network(
+                                      complaint['complaint_screenshot'],
+                                      fit: BoxFit.contain,
+                                      width: double.infinity,
+                                      loadingBuilder: (context, child, loadingProgress) {
+                                        if (loadingProgress == null) return child;
+                                        return Container(
+                                          height: 200,
+                                          color: Colors.grey[100],
+                                          child: Center(
+                                            child: CircularProgressIndicator(
+                                              value: loadingProgress.expectedTotalBytes != null
+                                                  ? loadingProgress.cumulativeBytesLoaded /
+                                                      loadingProgress.expectedTotalBytes!
+                                                  : null,
+                                              color: Colors.deepPurple,
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                      errorBuilder: (context, error, stackTrace) {
+                                        print('Error loading screenshot: $error');
+                                        return Container(
+                                          height: 120,
+                                          color: Colors.grey[100],
+                                          child: Center(
+                                            child: Column(
+                                              mainAxisAlignment: MainAxisAlignment.center,
+                                              children: [
+                                                Icon(Icons.broken_image, 
+                                                  size: 32, 
+                                                  color: Colors.grey[400]
+                                                ),
+                                                const SizedBox(height: 8),
+                                                Text(
+                                                  'Failed to load screenshot',
+                                                  style: TextStyle(
+                                                    color: Colors.grey[600],
+                                                    fontSize: 12,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ],
@@ -726,5 +818,40 @@ class _ComplaintPageState extends State<ComplaintPage> with SingleTickerProvider
         ],
       ),
     );
+  }
+}
+
+String formatDateTime(String? dateStr) {
+  if (dateStr == null) return 'Unknown Date';
+  try {
+    final date = DateTime.parse(dateStr);
+    return '${date.day}/${date.month}/${date.year} ${date.hour}:${date.minute}';
+  } catch (e) {
+    return 'Invalid Date';
+  }
+}
+
+String getTimeAgo(String? dateStr) {
+  if (dateStr == null) return '';
+  try {
+    final date = DateTime.parse(dateStr);
+    final now = DateTime.now();
+    final difference = now.difference(date);
+
+    if (difference.inDays > 365) {
+      return '${(difference.inDays / 365).floor()} years ago';
+    } else if (difference.inDays > 30) {
+      return '${(difference.inDays / 30).floor()} months ago';
+    } else if (difference.inDays > 0) {
+      return '${difference.inDays} days ago';
+    } else if (difference.inHours > 0) {
+      return '${difference.inHours} hours ago';
+    } else if (difference.inMinutes > 0) {
+      return '${difference.inMinutes} minutes ago';
+    } else {
+      return 'just now';
+    }
+  } catch (e) {
+    return '';
   }
 }
